@@ -177,22 +177,4 @@ export default class Schema {
         link.click();
     }
 
-    getConnectionTo(entity) {
-        return this._canvas.entityManager.getEntitiesInLayer(0).find(connection => connection.to.name === entity.name);
-    }
-    
-    getConnectionByName(name) {
-        return this._canvas.entityManager.getEntitiesInLayer(0).find(connection =>  connection.to.name === name);
-    }
-
-    removeConnection(to) {
-        const connections = this._canvas.entityManager.getEntitiesInLayer(0);
-        for (let i = 0; i < connections.length; i++) {
-            if (connections[i].to.name === to.name) {
-                connections.splice(i, 1);
-                return;
-            }
-        }
-    }
-
 }
