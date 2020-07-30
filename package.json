@@ -46,7 +46,6 @@
         "webpack-dev-server": "^3.11.0"
     },
     "dependencies": {
-        "future-flow": "^0.1.6",
         "json-stringify-safe": "^5.0.1"
     }
 }
