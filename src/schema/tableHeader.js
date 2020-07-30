@@ -2,7 +2,7 @@ import Entity from '../core/entity.js';
 import Rectangle from '../shapes/rectangle.js';
 import Font from '../styles/font.js';
 import Icon from './icon.js';
-import IconColors from '../../assets/backgroundColorsForIcons.json';
+import IconColors from '../../resources/json/backgroundColorsForIcons.json';
 
 export default class TableHeader extends Entity{
     constructor({
@@ -59,6 +59,7 @@ export default class TableHeader extends Entity{
             const iconSrcTokens  = icon.name.split(':');
             icon.background.color = IconColors[iconSrcTokens[1]];
             this._icon = new Icon({
+                name: icon.name,
                 src: `${this._canvas._imagesSource || '.'}/salesforce-icons/${iconSrcTokens[0]}/${iconSrcTokens[1]}.svg`,
                 parent: this,
                 position: this.position,
@@ -66,7 +67,7 @@ export default class TableHeader extends Entity{
                 padding: { left: 0, top: 0, right: 0, bottom: 0},
                 background: icon.background,
                 padding: icon.padding,
-                border: icon.border
+                border: icon.border,
             });
         }
     }

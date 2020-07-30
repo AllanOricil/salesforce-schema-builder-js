@@ -1,4 +1,6 @@
 const path = require('path');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+
 
 module.exports = {
     mode: 'development',
@@ -14,32 +16,50 @@ module.exports = {
         compress: true,
         port: 9000
     },
+    plugins: [
+        new MiniCssExtractPlugin({
+            filename: '[name].css',
+            chunkFilename: '[id].css',
+        })
+    ],
     module: {
         rules: [
             {
-                test: /\.(png|jpe?g|gif)$/i,
+                test: /\.(png|jpe?g|gif|svg)$/i,
                 loader: 'file-loader',
                 options: {
-                    outputPath: 'images',
+                    outputPath: 'assets/images/',
                 },
             },
             {
                 test: /\.json5$/i,
                 loader: 'json5-loader',
                 type: 'javascript/auto',
+                options: {
+                    outputPath: 'assets/json/',
+                },
             },
             {
-                test: /\.(woff(2)?|ttf|eot|svg)(\?v=\d+\.\d+\.\d+)?$/,
+                test: /\.css$/,
                 use: [
                     {
-                    loader: 'file-loader',
-                    options: {
-                        name: '[name].[ext]',
-                        outputPath: 'fonts/'
-                    }
-                    }
+                        loader: MiniCssExtractPlugin.loader,
+                        options: {
+                            hmr: true,
+                            reloadAll: true,
+                        }
+                    }, 
+                    'css-loader'
                 ]
+            },
+            {
+                test: /\.(ttf|woff|woff2)$/,
+                loader: 'url-loader',
+                options: {
+                    name: '[name].[ext]',
+                    outputPath: 'assets/fonts/'
+                }
             }
         ],
     },
-};
+};  

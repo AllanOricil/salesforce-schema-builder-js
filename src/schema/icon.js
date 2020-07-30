@@ -3,6 +3,7 @@ import Rectangle from "../shapes/rectangle";
 
 export default class Icon extends Entity {
     constructor({
+        name,
         src,
         position,
         padding,
@@ -19,6 +20,7 @@ export default class Icon extends Entity {
         });
         this._loaded = false;
         this._image = new Image();
+        this._name = name;
         this._image.src = src;
         this._image.addEventListener('load', () => {
             this._loaded = true;

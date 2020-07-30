@@ -1,7 +1,7 @@
 import Position from '../transforms/position.js';
 import Transform from '../transforms/transform.js';
 import EntityManager from './entityManager.js';
-import * as GridSVG from '../../assets/grid.svg';
+import * as GridSVG from '../../resources/images/grid.svg';
 
 export default class Canvas {
 

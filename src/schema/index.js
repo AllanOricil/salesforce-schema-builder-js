@@ -1,7 +1,6 @@
 import Canvas from '../core/canvas.js';
 import Table from './table.js';
 import Connection from './connection.js';
-import Field from './field.js';
 
 export default class Schema {
     constructor({
@@ -94,40 +93,10 @@ export default class Schema {
             entityMap[name] = newTable;
         }
 
-        Object.values(entityMap).forEach((entity) => {
-            this._canvas.entityManager.addEntity(entity, this._canvas);
-            entity._fields.forEach((field) => {
-                if(field._reference && entityMap[field._reference]){
-                    const entityToConnect = entityMap[field._reference];
-                    const connection = {
-                        name: `${entity._name}-${field._name}-${entityToConnect._name}`,
-                        isEditable: false,
-                        connector: {
-                            shape: 'triangle',
-                            dimension: {
-                                width: 10,
-                                height: 10
-                            },
-                            color: 'rgb(180,180,180)'
-                        },
-                        line: {
-                            weight: 3,
-                            color: 'rgb(180,180,180)',
-                            enableBezierCurves: true
-                        },
-                        to: field,
-                        from: entityToConnect._header
-                    };
-
-                    if(entity._name === field._reference){
-                        connection.to = entityToConnect._footer;
-                        connection.from = field;
-                    }
-
-                    const newConnection = new Connection(connection);
-                    field._connection = newConnection;
-                    this._canvas.entityManager.addEntity(newConnection, this._canvas);
-                }
+        Object.values(entityMap).forEach((table) => {
+            this._canvas.entityManager.addEntity(table, this._canvas);
+            table._fields.forEach((field) => {
+                table.addConnectionToField(field);
             });
         });
 
@@ -135,29 +104,29 @@ export default class Schema {
     }
 
     get data() {
-        let data = {};
-        const entitiesArray = this._canvas.entityManager.entities;
-        for (let i = 0; i < entitiesArray.length; i++) {
-            const entity = entitiesArray[i];
-            const dataEntity = {};
-
-            Object.keys(entitiesArray[i]).forEach(key => {
-                if (key.charAt(0) !== '_') dataEntity[key] = entity[key];
+        let data = {
+            tables: []
+        };
+        const tables = this._canvas.entityManager.getEntitiesInLayer(1);
+        for(let table of tables){
+            let newDataTable = {
+                name: table._name,
+                label: table._label,
+                icon: table._header._icon._name,
+                fields: []
+            };
+            table._fields.forEach(field => {
+                newDataTable.fields.push({
+                    name: field._name,
+                    label: field._label,
+                    reference: field._reference
+                });
             });
 
-            dataEntity.connections = [];
-            for (let j = 0; j < entity.connections.length; j++) {
-                let connection = entity.connections[j];
-                let dataConnection = {};
-                Object.keys(connection).forEach(key => {
-                    if (key.charAt(0) !== '_')
-                        dataConnection[key] = connection[key];
-                });
-                dataConnection.to = connection.to.name;
-                dataEntity.connections.push(dataConnection);
-            }
-            data[entity.name] = dataEntity;
+            data.tables.push(newDataTable);
         }
+
+        return data;
     }
 
     on(event, callback) {
