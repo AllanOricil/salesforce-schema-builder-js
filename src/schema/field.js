@@ -1,6 +1,8 @@
-import Entity from "../core/entity";
-import Font from "../styles/font";
-import Rectangle from "../shapes/rectangle";
+import {
+    Entity,
+    Font,
+    Rectangle
+} from '@allanoricil/canvasjs';
 
 export default class Field extends Entity{
 

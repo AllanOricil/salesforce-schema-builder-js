@@ -1,8 +1,10 @@
-import Entity from '../core/entity.js';
-import Rectangle from '../shapes/rectangle.js';
-import Font from '../styles/font.js';
+import { 
+    Entity,
+    Rectangle,
+    Font
+}from '@allanoricil/canvasjs';
 import Icon from './icon.js';
-import IconColors from '../../resources/json/backgroundColorsForIcons.json';
+import IconColors from '../../assets/json/backgroundColorsForIcons.json';
 
 export default class TableHeader extends Entity{
     constructor({

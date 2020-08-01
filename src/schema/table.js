@@ -1,10 +1,13 @@
-import Entity from '../core/entity.js';
-import Rectangle from '../shapes/rectangle.js';
 import Field from './field.js';
-import Font from '../styles/font.js';
 import TableHeader from './tableHeader.js';
 import TableFooter from './tableFooter.js';
 import Connection from './connection.js';
+
+import {
+    Entity,
+    Rectangle,
+    Font
+}from '@allanoricil/canvasjs';
 
 export default class Table extends Entity {
     constructor({
@@ -36,7 +39,6 @@ export default class Table extends Entity {
         this._shape = new Rectangle({
             position: this.position,
             dimension: this.dimension,
-            shadow,
             border,
             background
         });
@@ -59,16 +61,17 @@ export default class Table extends Entity {
             position: { x: this.position.x, y: this.position.y + this.dimension.height - 35 },
             dimension: { width: this.dimension.width, height: 35 },
             padding,
-            border: footer && footer.border ? footer.border : border
+            border: footer && footer.border ? footer.border : border,
+            shadow
         }, canvas);
 
         this._fields = [];
         let index = 0;
-        for (let [name, field] of Object.entries(fields)) {
+        fields.forEach(field => {
             const fieldFont = new Font(field.font);
             const fieldToInsert = new Field({
                 label: field.label,
-                name: name,
+                name: field.name,
                 parent: this,
                 reference: field.reference,
                 position: { 
@@ -86,7 +89,7 @@ export default class Table extends Entity {
             this._fields.push(fieldToInsert);
 
             index++;
-        }
+        });
 
         this._calculateScrollBarDimensions();
         this._showScrollBar = false;
@@ -122,7 +125,6 @@ export default class Table extends Entity {
 
             if(this._canvas.ctx.isPointInPath(this._scrollBar, mousePosition.x, mousePosition.y, 'nonzero')){
                 this._scrollBarColor = 'rgba(0,0,0,0.3)';
-                return;
             }else{
                 this._scrollBarColor = 'rgba(0,0,0,0.2)';
             }
@@ -164,21 +166,24 @@ export default class Table extends Entity {
                 y: fieldYPosition
             };
 
+            const isFieldOutsideOfScrollableArea = fieldYPosition < scrollableAreaYPosition - 15 || fieldYPosition > scrollableAreaY2Position - this._footer.dimension.height - 3;
+
             if(field._connection){
                 if(field._reference !== this._name){
-                    if(fieldYPosition < scrollableAreaYPosition - 15 || fieldYPosition > scrollableAreaY2Position - this._footer.dimension.height - 3){
+                    if(isFieldOutsideOfScrollableArea){
                         field._connection._to = this._header;
                     }else{
                         field._connection._to = field;
                     }
                 }else{
-                    if(fieldYPosition < scrollableAreaYPosition - 15 || fieldYPosition > scrollableAreaY2Position - this._footer.dimension.height - 3){
+                    if(isFieldOutsideOfScrollableArea){
                         field._connection._from = this._header;
                     }else{
                         field._connection._from = field;
                     }
                 }
             }
+
             field.draw(ctx);
         });
         ctx.restore();
@@ -272,6 +277,10 @@ export default class Table extends Entity {
                 this._canvas.entityManager.addEntity(newConnection, this._canvas);
             }
         }
+    }
+
+    setIcon(){
+        
     }
 
     _calculateScrollBarDimensions(){

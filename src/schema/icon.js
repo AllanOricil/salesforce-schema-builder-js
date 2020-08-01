@@ -1,5 +1,7 @@
-import Entity from "../core/entity";
-import Rectangle from "../shapes/rectangle";
+import {
+    Entity,
+    Rectangle
+} from '@allanoricil/canvasjs';
 
 export default class Icon extends Entity {
     constructor({

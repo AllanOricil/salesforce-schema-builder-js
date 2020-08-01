@@ -1,6 +1,9 @@
 import Connector from './connector.js';
-import Line from '../styles/line.js';
-import Entity from '../core/entity.js';
+
+import {
+    Entity,
+    Line
+} from '@allanoricil/canvasjs';
 
 export default class Connection extends Entity{
     static get PADDING(){
@@ -37,6 +40,52 @@ export default class Connection extends Entity{
             height: this._from.dimension.height,
         };
         this._padding = padding || Connection.PADDING;
+    }
+
+    draw(ctx) {
+        let path = this.path;
+        if (path.length > 0) {
+            ctx.save();
+            ctx.lineWidth = this._line.weight;
+            ctx.strokeStyle = this._line.color.hex;
+            if(this._line.dashed)
+            ctx.setLineDash(this._line.dashed);
+            ctx.lineWidth = this._line.weight;
+            ctx.lineCap = 'square';
+            ctx.beginPath();
+            const startPoint = path[0];
+            ctx.moveTo(startPoint.x, startPoint.y);
+            if (this._line && this._line.enableBezierCurves) {
+                const controlPoint1 = path[1];
+                const controlPoint2 = path[2];
+                const endPoint = path[3];
+                ctx.bezierCurveTo(
+                    controlPoint1.x,
+                    controlPoint1.y,
+                    controlPoint2.x,
+                    controlPoint2.y,
+                    endPoint.x,
+                    endPoint.y
+                );
+            } else {
+                for (let i = 1; i < path.length; i++) {
+                    const point = path[i];
+                    ctx.lineTo(point.x, point.y);
+                }
+            }
+            ctx.stroke();
+            ctx.closePath();
+            ctx.restore();
+
+            //draw connector
+            const lastPoint = path[path.length - 1];
+            const secondLastPoint = path[path.length - 2];
+            const delta_x = lastPoint.x - secondLastPoint.x;
+            const delta_y = lastPoint.y - secondLastPoint.y;
+            this._connector.transform.rotation.angle = Math.atan2(delta_y, delta_x);
+            this._connector.transform.position = lastPoint;
+            this._connector.draw(ctx);
+        }
     }
 
     get connectionPoints() {
@@ -116,64 +165,6 @@ export default class Connection extends Entity{
             });
         }
         return path;
-    }
-
-    draw(ctx) {
-        let path = this.path;
-        if (path.length > 0) {
-            ctx.save();
-            ctx.lineWidth = this._line.weight;
-            ctx.strokeStyle = this._line.color.hex;
-            if(this._line.dashed)
-            ctx.setLineDash(this._line.dashed);
-            ctx.lineWidth = this._line.weight;
-            ctx.lineCap = 'square';
-            ctx.beginPath();
-            const startPoint = path[0];
-            ctx.moveTo(startPoint.x, startPoint.y);
-            if (this._line && this._line.enableBezierCurves) {
-                if (path.length === 3) {
-                    const controlPoint = path[1];
-                    const endPoint = path[2];
-                    ctx.quadraticCurveTo(
-                        controlPoint.x,
-                        controlPoint.y,
-                        endPoint.x,
-                        endPoint.y
-                    );
-                } else {
-                    const controlPoint1 = path[1];
-                    const controlPoint2 = path[2];
-                    const endPoint = path[3];
-                    ctx.bezierCurveTo(
-                        controlPoint1.x,
-                        controlPoint1.y,
-                        controlPoint2.x,
-                        controlPoint2.y,
-                        endPoint.x,
-                        endPoint.y
-                    );
-                }
-            } else {
-                for (let i = 1; i < path.length; i++) {
-                    const point = path[i];
-                    ctx.lineTo(point.x, point.y);
-                }
-            }
-            ctx.stroke();
-            ctx.closePath();
-            ctx.restore();
-
-            //draw connector
-            const lastPoint = path[path.length - 1];
-            const secondLastPoint = path[path.length - 2];
-            const delta_x = lastPoint.x - secondLastPoint.x;
-            const delta_y = lastPoint.y - secondLastPoint.y;
-            this._connector.transform.rotation.angle = Math.atan2(delta_y, delta_x);
-            this._connector.transform.position = lastPoint;
-            this._connector.draw(ctx);
-            
-        }
     }
 
     get to() {

@@ -1,16 +1,16 @@
 const path = require('path');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
-
 module.exports = {
     mode: 'development',
     entry: './src/index.js',
     output: {
-        filename: 'schema-builder.js',
+        filename: 'index.js',
         path: path.resolve(__dirname, 'dist'),
         library: 'schemaBuilder',
         libraryTarget: 'umd',
     },
+    devtool: 'inline-source-map',
     devServer: {
         contentBase: path.join(__dirname, 'dist'),
         compress: true,

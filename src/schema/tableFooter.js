@@ -1,6 +1,4 @@
-import Entity from '../core/entity.js';
-import Rectangle from '../shapes/rectangle.js';
-import Font from '../styles/font.js';
+import { Entity, Rectangle } from '@allanoricil/canvasjs';
 
 export default class TableFooter extends Entity{
     constructor({
@@ -53,7 +51,7 @@ export default class TableFooter extends Entity{
     draw(ctx){
         ctx.save();
         this._shape.position.x = this._parent.position.x;
-        this._shape.position.y = this._parent.position.y + this._parent.dimension.height - 25;
+        this._shape.position.y = this._parent.position.y + this._parent.dimension.height - this._transform.dimension.height + this._parent.padding.bottom;
         this._shape.draw(ctx);
         ctx.restore();
     }

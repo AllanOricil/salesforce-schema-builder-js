@@ -1,6 +1,7 @@
-import Canvas from '../core/canvas.js';
+import { Canvas } from '@allanoricil/canvasjs';
 import Table from './table.js';
 import Connection from './connection.js';
+import gridSVG from '../../assets/images/grid.svg';
 
 export default class Schema {
     constructor({
@@ -8,6 +9,9 @@ export default class Schema {
         options,
         data
     }) {
+        if(options.drawGrid){
+            options.backgroundImage = `url('${gridSVG}')`;
+        }
         this._canvas = new Canvas({
             canvas,
             options
@@ -85,11 +89,6 @@ export default class Schema {
         let i = 0;
         for (let [name, table] of Object.entries(data)) {
             const newTable = new Table(table, this._canvas);
-            if(entityMap[name]){
-                name = name + i;
-                i++;
-            }
-            newTable._name = name;
             entityMap[name] = newTable;
         }
 
@@ -112,6 +111,8 @@ export default class Schema {
             let newDataTable = {
                 name: table._name,
                 label: table._label,
+                position: table.position,
+                dimension: { width: table.dimension.width, height: table.dimension.height },
                 icon: table._header._icon._name,
                 fields: []
             };
@@ -140,10 +141,7 @@ export default class Schema {
     }
 
     saveAsImage(name) {
-        var link = document.createElement('a');
-        link.download = `${name}.png`;
-        link.href = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
-        link.click();
+        this.canvas.saveAsImage(name);
     }
 
 }

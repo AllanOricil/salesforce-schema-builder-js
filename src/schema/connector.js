@@ -1,5 +1,7 @@
-import Transform from "../transforms/transform";
-import Color from "../styles/color";
+import {
+    Transform,
+    Color
+} from '@allanoricil/canvasjs';
 
 export default class Connector {
 
