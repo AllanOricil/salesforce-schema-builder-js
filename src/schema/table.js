@@ -7,7 +7,7 @@ import {
     Entity,
     Rectangle,
     Font
-}from '@allanoricil/canvasjs';
+} from '@allanoricil/canvasjs';
 
 export default class Table extends Entity {
     constructor({
@@ -49,7 +49,10 @@ export default class Table extends Entity {
             icon: icon,
             parent: this,
             position: this.position,
-            dimension: { width: this.dimension.width, height: 35 },
+            dimension: {
+                width: this.dimension.width,
+                height: 35
+            },
             padding,
             border: header && header.border ? header.border : border
         }, canvas);
@@ -58,8 +61,14 @@ export default class Table extends Entity {
             name: label,
             font: font,
             parent: this,
-            position: { x: this.position.x, y: this.position.y + this.dimension.height - 35 },
-            dimension: { width: this.dimension.width, height: 35 },
+            position: {
+                x: this.position.x,
+                y: this.position.y + this.dimension.height - 35
+            },
+            dimension: {
+                width: this.dimension.width,
+                height: 35
+            },
             padding,
             border: footer && footer.border ? footer.border : border,
             shadow
@@ -74,12 +83,12 @@ export default class Table extends Entity {
                 name: field.name,
                 parent: this,
                 reference: field.reference,
-                position: { 
-                    x: this._shape.position.x, 
-                    y: fieldFont.dimensions.height * index 
+                position: {
+                    x: this._shape.position.x,
+                    y: fieldFont.dimensions.height * index
                 },
                 dimension: {
-                    width: this._shape.dimension.width - 2 * this._padding.right - 10, 
+                    width: this._shape.dimension.width - 2 * this._padding.right - 10,
                     height: fieldFont.dimensions.height
                 },
                 font: fieldFont,
@@ -91,50 +100,51 @@ export default class Table extends Entity {
             index++;
         });
 
-        this._calculateScrollBarDimensions();
         this._showScrollBar = false;
-        this._scrollPosition =  0;
+        this._scrollPosition = 0;
         this._scrollBarColor = 'rgba(0,0,0,0.2)';
         this._scrollBar = new Path2D();
 
         this.on('wheel', (e) => {
-            let mousePosition = this._canvas.getTransformedPoint(e.clientX, e.clientY);
-            if(
-                mousePosition.x >= this._shape.position.x + this._padding.left &&
-                mousePosition.x <= this._shape.position.x + this._padding.left + this._shape.dimension.width - 2 * this._padding.right &&
-                mousePosition.y >= this._shape.position.y + this._padding.top + 10 &&
-                mousePosition.y <= this._shape.position.y + this._padding.top + this._shape.dimension.height - 10 - this._footer.dimension.height
-            ){
+            let mousePosition = this._canvas.getTransformedPoint(e.offsetX, e.offsetY);
+            if (
+                mousePosition.x >= this.scrollableAreaX1Position &&
+                mousePosition.x <= this.scrollableAreaX2Position &&
+                mousePosition.y >= this.scrollableAreaY1Position &&
+                mousePosition.y <= this.scrollableAreaY2Position
+            ) {
                 const delta = Math.sign(e.deltaY);
-                const fieldsStartY = this._shape.position.y + this._padding.top + this._font.dimensions.height + 10 + this._scrollPosition;
-                const cond1 = fieldsStartY + (this._fields.length * this._fields[0]._font.dimensions.height) > this._shape.position.y + this._padding.top + this._shape.dimension.height - 10 - this._footer.dimension.height;
-                const cond2 = fieldsStartY < this._shape.position.y + this._padding.top + this._font.dimensions.height + 10;
-                if((cond1 && delta > 0) || (cond2 && delta < 0)) this._scrollPosition-= delta * 5;
+                const cond1 = this.initialFieldYPosition + this.scrollableAreaHeight > this.scrollableAreaY2Position;
+                const cond2 = this.initialFieldYPosition < this.scrollableAreaY1Position;
+                if ((cond1 && delta > 0) || (cond2 && delta < 0)) this._scrollPosition -= delta * 5;
             }
         });
 
         this.on('mousemove', (e) => {
-            let mousePosition = {x: e.offsetX, y: e.offsetY};
-            this._fields.forEach(field =>{
-                if(field.contains(mousePosition)){
+            let mousePosition = {
+                x: e.offsetX,
+                y: e.offsetY
+            };
+            this._fields.forEach(field => {
+                if (field.contains(mousePosition)) {
                     field._shape.background.color = '#f3f2f2';
-                }else{
+                } else {
                     field._shape.background.color = 'white';
                 }
             });
 
-            if(this._canvas.ctx.isPointInPath(this._scrollBar, mousePosition.x, mousePosition.y, 'nonzero')){
+            if (this._canvas.ctx.isPointInPath(this._scrollBar, mousePosition.x, mousePosition.y, 'nonzero')) {
                 this._scrollBarColor = 'rgba(0,0,0,0.3)';
-            }else{
+            } else {
                 this._scrollBarColor = 'rgba(0,0,0,0.2)';
             }
         });
 
-        this.on('mousehover', (e) =>{
+        this.on('mousehover', (e) => {
             this._showScrollBar = true;
         });
 
-        this.on('mouseleave', (e) =>{
+        this.on('mouseleave', (e) => {
             this._showScrollBar = false;
         });
     }
@@ -149,36 +159,36 @@ export default class Table extends Entity {
         //scrollable area
         ctx.save();
         ctx.beginPath();
-        const scrollableAreaYPosition = this.position.y + this._header.dimension.height + 10;
-        const scrollableAreaY2Position = scrollableAreaYPosition + this._shape.dimension.height - this._padding.top - this._font.dimensions.height - 20;
         ctx.rect(
-            this._shape.position.x + this._padding.left, 
-            scrollableAreaYPosition,
+            this._shape.position.x + this._padding.left,
+            this.scrollableAreaY1Position,
             this._shape.dimension.width - 2 * this._padding.right,
-            this._shape.dimension.height - this._padding.top - this._font.dimensions.height - 10 - this._footer.dimension.height
+            this.clipAreaHeight
         );
         ctx.clip();
-        
-        this._fields.forEach((field, index) =>{
-            const fieldYPosition = this._shape.position.y + this._padding.top + this._font.dimensions.height + 10 + field._font.dimensions.height * index + this._scrollPosition;
+
+        this._fields.forEach((field, index) => {
+            const fieldYPosition = this.initialFieldYPosition + field._font.dimensions.height * index;
             field.position = {
                 x: this._shape.position.x + this._padding.left,
                 y: fieldYPosition
             };
 
-            const isFieldOutsideOfScrollableArea = fieldYPosition < scrollableAreaYPosition - 15 || fieldYPosition > scrollableAreaY2Position - this._footer.dimension.height - 3;
+            const isFieldOutsideOfScrollableArea =
+                fieldYPosition < this.scrollableAreaY1Position - 10 ||
+                fieldYPosition > this.scrollableAreaY2Position - 15;
 
-            if(field._connection){
-                if(field._reference !== this._name){
-                    if(isFieldOutsideOfScrollableArea){
+            if (field._connection) {
+                if (field._reference !== this._name) {
+                    if (isFieldOutsideOfScrollableArea) {
                         field._connection._to = this._header;
-                    }else{
+                    } else {
                         field._connection._to = field;
                     }
-                }else{
-                    if(isFieldOutsideOfScrollableArea){
+                } else {
+                    if (isFieldOutsideOfScrollableArea) {
                         field._connection._from = this._header;
-                    }else{
+                    } else {
                         field._connection._from = field;
                     }
                 }
@@ -189,15 +199,15 @@ export default class Table extends Entity {
         ctx.restore();
 
         //scrollbar
-        if(this._hasScroolBar && this._showScrollBar){
+        if (this.hasScroolBar && this._showScrollBar) {
             ctx.save();
             ctx.fillStyle = 'rgba(0,0,0,0.1)';
             ctx.beginPath();
             ctx.rect(
-                this._shape.position.x + this._padding.left + this._shape.dimension.width - 2 * this._padding.right - 5,
-                this._shape.position.y + this._padding.top + this._font.dimensions.height + 10,
+                this.scrollableAreaX2Position - 5,
+                this.scrollableAreaY1Position,
                 5,
-                this._shape.dimension.height - this._padding.top - this._font.dimensions.height - 10 - this._footer.dimension.height
+                this.clipAreaHeight
             );
             ctx.fill();
             ctx.restore();
@@ -207,10 +217,10 @@ export default class Table extends Entity {
             ctx.beginPath();
             this._scrollBar = new Path2D();
             this._scrollBar.rect(
-                this._shape.position.x + this._padding.left + this._shape.dimension.width - 2 * this._padding.right - 5,
-                this._shape.position.y + this._padding.top + this._font.dimensions.height + 9.5 - this._scrollPosition * this._percentOfVisibleFields,
+                this.scrollableAreaX2Position - 5,
+                this.scrollableAreaY1Position - this._scrollPosition * this.percentOfVisibleFields,
                 5,
-                this._scrollbarSize
+                this.scrollbarSize
             );
             ctx.fill(this._scrollBar);
             ctx.restore();
@@ -219,19 +229,19 @@ export default class Table extends Entity {
         this._footer.draw(ctx);
     }
 
-    addField(field){
+    addField(field) {
         const fieldFont = new Font(field.font);
         const fieldToInsert = new Field({
             label: field.label,
             name: field.name,
             parent: this,
             reference: field.reference,
-            position: { 
-                x: this._shape.position.x, 
-                y: fieldFont.dimensions.height * this._fields.length 
+            position: {
+                x: this._shape.position.x,
+                y: fieldFont.dimensions.height * this._fields.length
             },
             dimension: {
-                width: this._shape.dimension.width - 2 * this._padding.right - 10, 
+                width: this._shape.dimension.width - 2 * this._padding.right - 10,
                 height: fieldFont.dimensions.height
             },
             font: fieldFont,
@@ -240,13 +250,12 @@ export default class Table extends Entity {
         }, this._canvas);
         this._fields.push(fieldToInsert);
         this.addConnectionToField(fieldToInsert);
-        this._calculateScrollBarDimensions();
     }
 
-    addConnectionToField(field){
-        if(field._reference){
+    addConnectionToField(field) {
+        if (field._reference) {
             const referenceTable = this._canvas.entityManager.getEntityByName(field._reference);
-            if(referenceTable){
+            if (referenceTable) {
                 const connection = {
                     name: `${this._name}-${field._name}-${referenceTable._name}`,
                     isEditable: false,
@@ -267,7 +276,7 @@ export default class Table extends Entity {
                     from: referenceTable._header
                 };
 
-                if(this._name === field._reference){
+                if (this._name === field._reference) {
                     connection.to = referenceTable._footer;
                     connection.from = field;
                 }
@@ -279,16 +288,48 @@ export default class Table extends Entity {
         }
     }
 
-    setIcon(){
-        
+    setIcon() {
+
     }
 
-    _calculateScrollBarDimensions(){
-        this._clipAreaHeight = this._shape.dimension.height - this._padding.top - this._font.dimensions.height - 10 - this._footer.dimension.height;
-        this._scrollableAreaHeight = this._fields.length * this._fields[0]._font.dimensions.height;
-        const numberOfVisibleFields = (this._clipAreaHeight / this._fields[0]._font.dimensions.height);
-        this._percentOfVisibleFields = numberOfVisibleFields/this._fields.length;
-        this._scrollbarSize = parseInt(this._clipAreaHeight * this._percentOfVisibleFields).toFixed(2);
-        this._hasScroolBar = this._scrollableAreaHeight > this._clipAreaHeight;
+    get initialFieldYPosition() {
+        return this.scrollableAreaY1Position + this._scrollPosition;
+    }
+
+    get scrollableAreaX1Position() {
+        return this._shape.position.x + this._padding.left;
+    }
+
+    get scrollableAreaX2Position() {
+        return this._shape.position.x + this._padding.left + this._shape.dimension.width - 2 * this._padding.right;
+    }
+
+    get scrollableAreaY1Position() {
+        return this._shape.position.y + this._header.dimension.height + 10;
+    }
+
+    get scrollableAreaY2Position() {
+        return this._shape.position.y + this._shape.dimension.height - this._footer.dimension.height - 10;
+    }
+
+    get clipAreaHeight() {
+        return this._shape.dimension.height - this._header.dimension.height - this._footer.dimension.height - 20;
+    }
+
+    get scrollableAreaHeight() {
+        return this._fields.length * this._fields[0]._font.dimensions.height;
+    }
+
+    get hasScroolBar() {
+        return this.scrollableAreaHeight > this.clipAreaHeight;
+    }
+
+    get percentOfVisibleFields() {
+        const numberOfVisibleFields = (this.clipAreaHeight / this._fields[0]._font.dimensions.height);
+        return numberOfVisibleFields / this._fields.length;
+    }
+
+    get scrollbarSize() {
+        return parseInt(this.clipAreaHeight * this.percentOfVisibleFields).toFixed(2);
     }
 }

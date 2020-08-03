@@ -9,9 +9,7 @@ export default class Schema {
         options,
         data
     }) {
-        if(options.drawGrid){
-            options.backgroundImage = `url('${gridSVG}')`;
-        }
+        options.backgroundImage = `url('${gridSVG}')`;
         this._canvas = new Canvas({
             canvas,
             options

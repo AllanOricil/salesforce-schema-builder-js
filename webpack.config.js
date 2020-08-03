@@ -40,11 +40,16 @@ module.exports = {
     module: {
         rules: [
             {
-                test: /\.(png|jpe?g|gif|svg)$/i,
-                loader: 'file-loader',
-                options: {
-                    name: '[path][name].[ext]',
-                },
+                test: /\.(svg)$/i,
+                use: [
+                    {
+                        loader: 'svg-url-loader',
+                        options: {
+                            limit: 8192,
+                            outputPath: 'assets/images/'
+                        },
+                    },
+                ]
             },
             {
                 test: /\.json5$/i,

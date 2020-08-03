@@ -1,6 +1,9 @@
-import { Entity, Rectangle } from '@allanoricil/canvasjs';
+import {
+    Entity,
+    Rectangle
+} from '@allanoricil/canvasjs';
 
-export default class TableFooter extends Entity{
+export default class TableFooter extends Entity {
     constructor({
         name,
         position,
@@ -28,9 +31,8 @@ export default class TableFooter extends Entity{
         });
 
         Object.defineProperty(
-            this._shape, 
-            "sides", 
-            {
+            this._shape,
+            "sides", {
                 get: function () {
                     const middleHeight = this._transform.dimension.height / 2;
                     return {
@@ -43,15 +45,15 @@ export default class TableFooter extends Entity{
                             y: this._transform.position.y + middleHeight
                         },
                     };
-                } 
+                }
             }
         );
     }
 
-    draw(ctx){
+    draw(ctx) {
         ctx.save();
         this._shape.position.x = this._parent.position.x;
-        this._shape.position.y = this._parent.position.y + this._parent.dimension.height - this._transform.dimension.height + this._parent.padding.bottom;
+        this._shape.position.y = this._parent.position.y + this._parent.dimension.height - this._transform.dimension.height;
         this._shape.draw(ctx);
         ctx.restore();
     }
