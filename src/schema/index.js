@@ -89,9 +89,12 @@ export default class Schema {
             const newTable = new Table(table, this._canvas);
             entityMap[name] = newTable;
         }
-
+        
         Object.values(entityMap).forEach((table) => {
             this._canvas.entityManager.addEntity(table, this._canvas);
+        });
+
+        Object.values(entityMap).forEach((table) => {
             table._fields.forEach((field) => {
                 table.addConnectionToField(field);
             });
