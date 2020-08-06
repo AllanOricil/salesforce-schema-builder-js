@@ -1,6 +1,6 @@
 {
     "name": "@allanoricil/schema-builder",
-    "version": "0.3.8",
+    "version": "0.5.7",
     "description": "Draw Database Schemas",
     "main": "/dist/index.js",
     "module": "/dist/index.js",
@@ -13,7 +13,7 @@
         "minify": "babel index.js -d dist",
         "uglify": "uglifyjs dist/index.js -o dist/index.min.js -c -m",
         "build": "npx webpack --config webpack.config.js",
-        "start": "webpack-dev-server --config webpack.dev.config.js --open",
+        "start": "webpack-dev-server --config webpack.config.js --open",
         "watch": "npx webpack --watch --config webpack.dev.config.js"
     },
     "repository": {
@@ -51,7 +51,7 @@
         "webpack-dev-server": "^3.11.0"
     },
     "dependencies": {
-        "@allanoricil/canvasjs": "^0.3.2"
+        "@allanoricil/canvasjs": "^0.6.25"
     },
     "bugs": {
         "url": "https://github.com/AllanOricil/schema-builder-js/issues"

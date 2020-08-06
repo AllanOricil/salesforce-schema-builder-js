@@ -19,16 +19,16 @@ export default class Connector {
 
     draw(ctx) {
         ctx.save();
-        ctx.translate(this._transform.position.x , this._transform.position.y);
-        ctx.rotate(this._transform.rotation.angle);
-        ctx.translate(-this._transform.position.x, -this._transform.position.y);
+        ctx.translate(this._transform._position.x , this._transform._position.y);
+        ctx.rotate(this._transform._rotation.angle);
+        ctx.translate(-this._transform._position.x, -this._transform._position.y);
 
         ctx.strokeStyle = this._color.rgba;
         ctx.lineWidth = 5;
         ctx.lineCap = 'round';
         ctx.fillStyle = 'white';
         ctx.beginPath();
-        ctx.arc(this._transform.position.x - 5, this._transform.position.y, 5, 0, 2 * Math.PI);
+        ctx.arc(this._transform._position.x - 5, this._transform._position.y, 5, 0, 2 * Math.PI);
         ctx.closePath();
         ctx.stroke();
         ctx.fill();
@@ -36,21 +36,15 @@ export default class Connector {
         ctx.strokeStyle = this._color.rgba;
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(this._transform.position.x + 2, this._transform.position.y);
-        ctx.lineTo(this._transform.position.x + 14, this._transform.position.y);
-        ctx.moveTo(this._transform.position.x + 2, this._transform.position.y);
-        ctx.lineTo(this._transform.position.x + 14, this._transform.position.y +  8);
-        ctx.moveTo(this._transform.position.x + 2, this._transform.position.y);
-        ctx.lineTo(this._transform.position.x + 14, this._transform.position.y - 8);
+        ctx.moveTo(this._transform._position.x + 2, this._transform._position.y);
+        ctx.lineTo(this._transform._position.x + 14, this._transform._position.y);
+        ctx.moveTo(this._transform._position.x + 2, this._transform._position.y);
+        ctx.lineTo(this._transform._position.x + 14, this._transform._position.y +  8);
+        ctx.moveTo(this._transform._position.x + 2, this._transform._position.y);
+        ctx.lineTo(this._transform._position.x + 14, this._transform._position.y - 8);
         ctx.stroke();
 
         ctx.restore();
     }
-
-    get transform() {
-        return this._transform;
-    }
-
-
 
 }

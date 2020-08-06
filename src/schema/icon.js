@@ -1,9 +1,9 @@
 import {
-    Entity,
+    CanvasElement,
     Rectangle
 } from '@allanoricil/canvasjs';
 
-export default class Icon extends Entity {
+export default class Icon extends CanvasElement {
     constructor({
         name,
         src,
@@ -28,34 +28,29 @@ export default class Icon extends Entity {
             this._loaded = true;
         });
         this._shape = new Rectangle({
-            position: this.position,
-            dimension: this.dimension,
+            position: this._transform._position,
+            dimension: this._transform._dimension,
             background: background,
             border: border
         });
-    }
 
-    get image() {
-        return this._image;
-    }
-
-    get loaded() {
-        return this._loaded;
+        this.on('mousedrag', ({x, y}) => {
+            this.position = {
+                x: this._transform._position.x + x,
+                y: this._transform._position.y + y
+            };
+        });
     }
 
     draw(ctx) {
         ctx.save();
-        if(this._shape.background){
-            ctx.translate(this.padding.left,  this.padding.top);
-            this._shape.draw(ctx);
-            ctx.translate(-this.padding.left, -this.padding.top);
-        }
+        this._shape.draw(ctx);
         ctx.drawImage(
-            this.image,
-            this.position.x + this.padding.left,
-            this.position.y + this.padding.top,
-            this.dimension.width,
-            this.dimension.height
+            this._image,
+            this._transform._position.x,
+            this._transform._position.y,
+            this._transform._dimension.width,
+            this._transform._dimension.height
         );
         ctx.restore();
     }

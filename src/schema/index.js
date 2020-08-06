@@ -18,18 +18,18 @@ export default class Schema {
     }
 
     getTableByName(name) {
-        return this._canvas.entityManager.getEntityByName(name);
+        return this._canvas.canvasElementsManager.getCanvasElementByName(name);
     }
 
     addTable(table) {
         const newTable = new Table(table, this._canvas);
-        this._canvas.entityManager.addEntity(newTable, this._canvas);
+        this._canvas.canvasElementsManager.addCanvasElement(newTable, this._canvas);
 
-        const tables = this._canvas.entityManager.getEntitiesInLayer(1);
+        const tables = this._canvas.canvasElementsManager.getCanvasElementsInLayer(1);
         for(let table of tables){
             table._fields.forEach((field) => {
                 if(field._reference){
-                    const referenceTable = this._canvas.entityManager.getEntityByName(field._reference);
+                    const referenceTable = this._canvas.canvasElementsManager.getCanvasElementByName(field._reference);
                     if(referenceTable){
                         const connection = {
                             name: `${table._name}-${field._name}-${referenceTable._name}`,
@@ -58,7 +58,7 @@ export default class Schema {
     
                         const newConnection = new Connection(connection);
                         field._connection = newConnection;
-                        this._canvas.entityManager.addEntity(newConnection, this._canvas);
+                        this._canvas.canvasElementsManager.addCanvasElement(newConnection, this._canvas);
                     }
                 }
             });
@@ -66,19 +66,19 @@ export default class Schema {
     }
 
     removeTableByName(name) {
-        const deletedEntity = this._canvas.entityManager.getEntityByName(name); 
-        this._canvas.entityManager.removeEntityByName(name);
-        const connections = this._canvas.entityManager.getEntitiesInLayer(0);
+        const deletedEntity = this._canvas.canvasElementsManager.getCanvasElementByName(name); 
+        this._canvas.canvasElementsManager.removeCanvasElementByName(name);
+        const connections = this._canvas.canvasElementsManager.getCanvasElementsInLayer(0);
 
         for(let connection of connections){
             if(connection._to._parent._name === deletedEntity._name || connection._from._parent._name == deletedEntity._name){
-                this._canvas.entityManager.removeEntityByName(connection._name);
+                this._canvas.canvasElementsManager.removeCanvasElementByName(connection._name);
             }
         }
     }
 
     addFieldToTable(field, tableName){
-        const table = this._canvas.entityManager.getEntityByName(tableName);
+        const table = this._canvas.canvasElementsManager.getCanvasElementByName(tableName);
         table.addField(field);
     }
 
@@ -91,7 +91,7 @@ export default class Schema {
         }
         
         Object.values(entityMap).forEach((table) => {
-            this._canvas.entityManager.addEntity(table, this._canvas);
+            this._canvas.canvasElementsManager.addCanvasElement(table, this._canvas);
         });
 
         Object.values(entityMap).forEach((table) => {
@@ -107,13 +107,13 @@ export default class Schema {
         let data = {
             tables: []
         };
-        const tables = this._canvas.entityManager.getEntitiesInLayer(1);
+        const tables = this._canvas.canvasElementsManager.getCanvasElementsInLayer(1);
         for(let table of tables){
             let newDataTable = {
                 name: table._name,
                 label: table._label,
-                position: table.position,
-                dimension: { width: table.dimension.width, height: table.dimension.height },
+                position: table._transform._position,
+                dimension: { width: table._transform._dimension.width, height: table._transform._dimension.height },
                 icon: table._header._icon._name,
                 fields: []
             };

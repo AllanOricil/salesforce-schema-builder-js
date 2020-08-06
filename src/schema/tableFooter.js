@@ -1,9 +1,9 @@
 import {
-    Entity,
+    CanvasElement,
     Rectangle
 } from '@allanoricil/canvasjs';
 
-export default class TableFooter extends Entity {
+export default class TableFooter extends CanvasElement {
     constructor({
         name,
         position,
@@ -23,39 +23,41 @@ export default class TableFooter extends Entity {
         }, canvas);
 
         this._shape = new Rectangle({
-            position: this.position,
-            dimension: this.dimension,
+            position: this._transform._position,
+            dimension: this._transform._dimension,
             shadow,
             border,
             background
         });
+        
+        this._connection = undefined;
 
-        Object.defineProperty(
-            this._shape,
-            "sides", {
-                get: function () {
-                    const middleHeight = this._transform.dimension.height / 2;
-                    return {
-                        right: {
-                            x: this._transform.position.x + this._transform.dimension.width,
-                            y: this._transform.position.y + middleHeight
-                        },
-                        left: {
-                            x: this._transform.position.x,
-                            y: this._transform.position.y + middleHeight
-                        },
-                    };
-                }
-            }
-        );
+        this.on('mousedrag', ({x, y})=>{
+            this.position = {
+                x: this._transform._position.x + x,
+                y: this._transform._position.y + y
+            };
+        });
     }
 
     draw(ctx) {
         ctx.save();
-        this._shape.position.x = this._parent.position.x;
-        this._shape.position.y = this._parent.position.y + this._parent.dimension.height - this._transform.dimension.height;
         this._shape.draw(ctx);
         ctx.restore();
+    }
+
+    get connectionPoints(){
+        const middleHeight = this._transform._dimension.height / 2;
+        return {
+            right: {
+                x: this._transform._position.x + this._transform._dimension.width,
+                y: this._transform._position.y + middleHeight
+            },
+            left: {
+                x: this._transform._position.x,
+                y: this._transform._position.y + middleHeight
+            },
+        };
     }
 
 }
