@@ -24,6 +24,8 @@ module.exports = {
                         // Note: I'm not certain this is needed.
                         reserved: ['console.log'],
                     },
+                    keep_fnames: false,
+                    keep_classnames: false
                 },
             }),
         ],

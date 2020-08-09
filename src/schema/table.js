@@ -34,7 +34,7 @@ export default class Table extends CanvasElement {
         }, canvas);
         this._z = 1;
         this._label = label;
-        this._font = font ? new Font(font) : Font.FONT;
+        this._font = font ? new Font(font) : Font.ARIAL;
         this._isDraggable = isDraggable || false;
         this._shape = new Rectangle({
             position: this._transform._position,
@@ -53,7 +53,8 @@ export default class Table extends CanvasElement {
                 width: this._transform._dimension.width,
                 height: 35
             },
-            padding,
+            padding: header && header.padding ? header.padding : padding,
+            background: header && header.background ? header.background : background,
             border: header && header.border ? header.border : border
         }, canvas);
 
@@ -69,13 +70,14 @@ export default class Table extends CanvasElement {
                 width: this._transform._dimension.width,
                 height: 35
             },
-            padding,
+            padding: footer && footer.padding ? footer.padding : padding,
+            background: footer && footer.background ? footer.background : background,
             border: footer && footer.border ? footer.border : border,
             shadow
         }, canvas);
 
         this._showScrollBar = false;
-        this._scrollBarWidth = 5;
+        this._scrollBarWidth = 10;
         this._scrollPosition = 0;
         this._scrollBarColor = 'rgba(0,0,0,0.2)';
         this._scrollBar = new Path2D();
@@ -87,9 +89,9 @@ export default class Table extends CanvasElement {
         this.scrollableAreaY2Position = this._shape._transform._position.y + this._shape._transform._dimension.height - this._footer._transform._dimension.height - 10;
 
         this._fields = [];
-        let index = 0;
-        fields.forEach(field => {
-            const fieldFont = new Font(field.font);
+        for(let i = 0; fields && i < fields.length; i++){
+            const field = fields[i];
+            const fieldFont = field.font ? new Font(field.font) : Font.ARIAL;
             const fieldToInsert = new Field({
                 label: field.label,
                 name: field.name,
@@ -97,7 +99,7 @@ export default class Table extends CanvasElement {
                 reference: field.reference,
                 position: {
                     x: this.scrollableAreaX1Position,
-                    y: this._shape._transform._position.y + fieldFont._dimensions.height * index
+                    y: this.scrollableAreaY1Position + fieldFont._dimensions.height * i
                 },
                 dimension: {
                     width: this.scrollableAreaWdith - this._scrollBarWidth,
@@ -106,23 +108,32 @@ export default class Table extends CanvasElement {
                 font: field.font,
                 border: field.border,
                 type: field.type,
-                padding: field.padding || { left: 15, top: 0, right: 0, bottom: 0},
-                index: index
+                background: field.background,
+                hoverBackground: field.hoverBackground,
+                padding: field.padding,
+                connectionStyles: field.connection,
+                index: i
             }, canvas);
             this._fields.push(fieldToInsert);
-
-            index++;
-        });
+        };
 
         this._connections = [];
 
         this.clipAreaHeight = this._shape._transform._dimension.height - this._header._transform._dimension.height - this._footer._transform._dimension.height - 20;
-        this.scrollableAreaHeight = this._fields.length * this._fields[0]._font._dimensions.height;
+        this.scrollableAreaHeight = this._fields.length != 0 ? this._fields.length * this._fields[0]._font._dimensions.height : 0;
         this.hasScroolBar = this.scrollableAreaHeight > this.clipAreaHeight;
         this.scrollbarX1Position = this.scrollableAreaX2Position - this._scrollBarWidth;
         this.percentOfVisibleFields =  (this.clipAreaHeight / this._fields[0]._font._dimensions.height) / this._fields.length;
         this.scrollbarSize = parseInt(this.clipAreaHeight * this.percentOfVisibleFields).toFixed(2);
         this.initialFieldYPosition =  this.scrollableAreaY1Position + this._scrollPosition;
+
+        this.on('mousedown', () =>{
+            this._canvas._canvasElementsManager.moveCanvasElementToLayer(this, 2);
+        });
+
+        this.on('click', ()=>{
+            this._canvas._canvasElementsManager.moveCanvasElementToLayer(this, 2);
+        });
 
         this.on('mousedrag', ({x, y}) => {
             const transformedPoint = this._canvas.getTransformedPoint(x, y);
@@ -130,7 +141,7 @@ export default class Table extends CanvasElement {
                 x: transformedPoint.x - this._transform._dimension.width / 2,
                 y: transformedPoint.y - this._transform._dimension.height / 2,
             };
-            this.calculateScrollbarProperties();
+            this._calculateScrollbarProperties();
             const parentDragX = this._transform._position.x - this._transform._oldPosition.x;
             const parentDragY = this._transform._position.y - this._transform._oldPosition.y;
             this._header.emit('mousedrag', { x: parentDragX, y: parentDragY } );
@@ -144,20 +155,22 @@ export default class Table extends CanvasElement {
         });
 
         this.on('wheel', (e) => {
-            let mousePosition = this._canvas.getTransformedPoint(e.offsetX, e.offsetY);
-            if (
-                mousePosition.x >= this.scrollableAreaX1Position &&
-                mousePosition.x <= this.scrollableAreaX2Position &&
-                mousePosition.y >= this.scrollableAreaY1Position &&
-                mousePosition.y <= this.scrollableAreaY2Position
-            ) {
-                const delta = Math.sign(e.deltaY);
-                const cond1 = this.initialFieldYPosition + this.scrollableAreaHeight > this.scrollableAreaY2Position;
-                const cond2 = this.initialFieldYPosition < this.scrollableAreaY1Position;
-                if ((cond1 && delta > 0) || (cond2 && delta < 0)) { 
-                    this._scrollPosition -= delta * 5;
-                    this.initialFieldYPosition =  this.scrollableAreaY1Position + this._scrollPosition;
-                    this._fields.forEach(field => field.emit('wheel', this.initialFieldYPosition));
+            if(this.hasScroolBar){
+                let mousePosition = this._canvas.getTransformedPoint(e.offsetX, e.offsetY);
+                if (
+                    mousePosition.x >= this.scrollableAreaX1Position &&
+                    mousePosition.x <= this.scrollableAreaX2Position &&
+                    mousePosition.y >= this.scrollableAreaY1Position &&
+                    mousePosition.y <= this.scrollableAreaY2Position
+                ) {
+                    const delta = Math.sign(e.deltaY);
+                    const cond1 = this.initialFieldYPosition + this.scrollableAreaHeight > this.scrollableAreaY2Position;
+                    const cond2 = this.initialFieldYPosition < this.scrollableAreaY1Position;
+                    if ((cond1 && delta > 0) || (cond2 && delta < 0)) { 
+                        this._scrollPosition -= delta * 5;
+                        this.initialFieldYPosition =  this.scrollableAreaY1Position + this._scrollPosition;
+                        this._fields.forEach(field => field.emit('wheel', this.initialFieldYPosition));
+                    }
                 }
             }
         });
@@ -180,6 +193,9 @@ export default class Table extends CanvasElement {
 
         this.on('mouseleave', (e) => {
             this._showScrollBar = false;
+            this._fields.forEach(field => {
+                field.emit('mouseleave');
+            });
         });
     }
 
@@ -236,69 +252,54 @@ export default class Table extends CanvasElement {
     }
 
     addField(field) {
-        const fieldFont = new Font(field.font);
+        const fieldFont = field.font ? new Font(field.font) : Font.ARIAL;
         const fieldToInsert = new Field({
             label: field.label,
             name: field.name,
             parent: this,
             reference: field.reference,
             position: {
-                x: this._shape._transform._position.x,
-                y: fieldFont._dimensions.height * this._fields.length
+                x: this._transform._position.x,
+                y: this._transform._position.y + fieldFont._dimensions.height * this._fields.length
             },
             dimension: {
-                width: this.scrollableAreaWdith - 10,
+                width: this.scrollableAreaWdith - this._scrollBarWidth,
                 height: fieldFont._dimensions.height
             },
             font: fieldFont,
             border: field.border,
-            type: field.type
+            padding: field.padding || { left: 15, top: 0, right: 0, bottom: 0},
+            type: field.type,
+            index: this._fields.length
         }, this._canvas);
         this._fields.push(fieldToInsert);
-        this.addConnectionToField(fieldToInsert);
-        this.calculateScrollbarProperties();
+        if(field.reference) this.addConnectionToField(fieldToInsert, field.connection);
+        this._calculateScrollbarProperties();
     }
 
-    addConnectionToField(field) {
-        if (field._reference) {
-            const referenceTable = this._canvas.canvasElementsManager.getCanvasElementByName(field._reference);
-            if (referenceTable) {
-                const connection = {
-                    name: `${this._name}-${field._name}-${referenceTable._name}`,
-                    isEditable: false,
-                    connector: {
-                        shape: 'triangle',
-                        dimension: {
-                            width: 10,
-                            height: 10
-                        },
-                        color: 'rgb(180,180,180)'
-                    },
-                    line: {
-                        weight: 3,
-                        color: 'rgb(180,180,180)',
-                        enableBezierCurves: true
-                    },
-                    to: field,
-                    from: referenceTable._header
-                };
+    getFieldByName(fieldName){
+        return this._fields.find(field => field._name === fieldName);
+    }
 
-                if (this._name === field._reference) {
-                    connection.to = referenceTable._footer;
-                    connection.from = field;
-
-                    referenceTable._footer._connecion = connection;
-                }
-                const newConnection = new Connection(connection);
-
-                referenceTable._connections.push(newConnection);
-                field.addConnection(newConnection);
-                this._canvas.canvasElementsManager.addCanvasElement(newConnection, this._canvas);
-            }
+    addConnectionToField(field, connection) {
+        const referenceTable = this._canvas.canvasElementsManager.getCanvasElementByName(field._reference);
+        if (referenceTable) {
+            const connectionToInsert = {
+                name: `${this._name}-${field.name}-${referenceTable._name}`,
+                isEditable: false,
+                connector: connection.connector,
+                line: connection.line,
+                to: field,
+                from: referenceTable._header
+            };
+            const newConnection = new Connection(connectionToInsert, this._canvas);
+            referenceTable._connections.push(newConnection);
+            field.addConnection(newConnection);
+            this._canvas.canvasElementsManager.addCanvasElement(newConnection);
         }
     }
 
-    calculateScrollbarProperties(){
+    _calculateScrollbarProperties(){
         this.scrollableAreaWdith = this._shape._transform._dimension.width - 2 * this._padding._right;
         this.scrollableAreaX1Position = this._shape._transform._position.x + this._padding._left;
         this.scrollableAreaX2Position = this._shape._transform._position.x + this._padding._left + this.scrollableAreaWdith;
@@ -311,6 +312,5 @@ export default class Table extends CanvasElement {
         this.percentOfVisibleFields =  (this.clipAreaHeight / this._fields[0]._font._dimensions.height) / this._fields.length;
         this.scrollbarSize = parseInt(this.clipAreaHeight * this.percentOfVisibleFields).toFixed(2);
     }
-
     
 }

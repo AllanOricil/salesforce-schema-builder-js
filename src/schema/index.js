@@ -17,50 +17,21 @@ export default class Schema {
         this.data = data;
     }
 
-    getTableByName(name) {
-        return this._canvas.canvasElementsManager.getCanvasElementByName(name);
+    getTableByName(tableName) {
+        const table = this._canvas.canvasElementsManager.getCanvasElementByName(tableName);
+        if(table) return table;
+        else throw new Error(`Table ${tableName} doesn't exist.`);
     }
 
     addTable(table) {
         const newTable = new Table(table, this._canvas);
-        this._canvas.canvasElementsManager.addCanvasElement(newTable, this._canvas);
+        this._canvas.canvasElementsManager.addCanvasElement(newTable);
 
         const tables = this._canvas.canvasElementsManager.getCanvasElementsInLayer(1);
         for(let table of tables){
             table._fields.forEach((field) => {
-                if(field._reference){
-                    const referenceTable = this._canvas.canvasElementsManager.getCanvasElementByName(field._reference);
-                    if(referenceTable){
-                        const connection = {
-                            name: `${table._name}-${field._name}-${referenceTable._name}`,
-                            isEditable: false,
-                            connector: {
-                                shape: 'triangle',
-                                dimension: {
-                                    width: 10,
-                                    height: 10
-                                },
-                                color: 'rgb(180,180,180)'
-                            },
-                            line: {
-                                weight: 3,
-                                color: 'rgb(180,180,180)',
-                                enableBezierCurves: true
-                            },
-                            to: field,
-                            from: referenceTable._header
-                        };
-    
-                        if(table._name === field._reference){
-                            connection.to = referenceTable._footer;
-                            connection.from = field;
-                        }
-    
-                        const newConnection = new Connection(connection);
-                        field._connection = newConnection;
-                        this._canvas.canvasElementsManager.addCanvasElement(newConnection, this._canvas);
-                    }
-                }
+                if(field._reference)
+                    table.addConnectionToField(field);
             });
         }
     }
@@ -78,27 +49,28 @@ export default class Schema {
     }
 
     addFieldToTable(field, tableName){
-        const table = this._canvas.canvasElementsManager.getCanvasElementByName(tableName);
+        const table = this.getTableByName(tableName);
         table.addField(field);
     }
 
+    getFieldByNameFromTable(fieldName, tableName){
+        const table = this.getTableByName(tableName);
+        return table.getFieldByName(fieldName);
+    }
+
     set data(data) {
-        let entityMap = {};
-        let i = 0;
         for (let [name, table] of Object.entries(data)) {
             const newTable = new Table(table, this._canvas);
-            entityMap[name] = newTable;
+            this._canvas.canvasElementsManager.addCanvasElement(newTable);
         }
         
-        Object.values(entityMap).forEach((table) => {
-            this._canvas.canvasElementsManager.addCanvasElement(table, this._canvas);
-        });
-
-        Object.values(entityMap).forEach((table) => {
+        const tables = this._canvas.canvasElementsManager.getCanvasElementsInLayer(1);
+        for(let table of tables){
             table._fields.forEach((field) => {
-                table.addConnectionToField(field);
+                if(field._reference)
+                    table.addConnectionToField(field, field._connectionStyles);
             });
-        });
+        };
 
         this._canvas.draw();
     }

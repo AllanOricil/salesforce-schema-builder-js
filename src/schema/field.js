@@ -1,7 +1,8 @@
 import {
     CanvasElement,
     Font,
-    Rectangle
+    Rectangle,
+    Background
 } from '@allanoricil/canvasjs';
 
 export default class Field extends CanvasElement{
@@ -11,6 +12,9 @@ export default class Field extends CanvasElement{
         name,
         type,
         position,
+        background,
+        hoverBackground,
+        connectionStyles,
         dimension,
         border,
         padding,
@@ -27,27 +31,32 @@ export default class Field extends CanvasElement{
         }, canvas);
         this._label = label;
         this._type = type || '';
-        this._font = new Font(font);
+        this._font = font instanceof Font ? font : new Font(font);
         this._shape = new Rectangle({
             position: this._transform._position,
             dimension: this._transform._dimension,
-            border: border
+            background,
+            border
         });
+        this._backgroundColor = background ? new Background(background) : Background.TRANSPARENT;
+        this._hoverBackground = hoverBackground ? new Background(hoverBackground) : Background.TRANSPARENT;
         this._connection = undefined;
+        this._connectionStyles = connectionStyles;
         this._parent = parent;
         this._reference = reference;
+        canvas._ctx.save();
+        canvas._ctx.font = this._font.font2Canvas;
         this.typeWidth = canvas._ctx.measureText(this._type).width;
-        this.fieldNameYPosition =  undefined;
-        this.fieldTypeXPosition = this._shape._transform._position.x + this._shape._transform._dimension.width - this.typeWidth - this._padding._right;
+        canvas._ctx.restore();
+        
+        this.fieldNameYPosition = this._transform._position.y + this._font._dimensions.height / 5;
+        this.fieldTypeXPosition = this._transform._position.x + this._transform._dimension.width - this.typeWidth - this._padding._right - this._parent._scrollBarWidth;
         this._index = index;
+        this._fontIndexYPosition = this._index * this._font._dimensions.height;
 
         this._draw = 
                 this._transform._position.y >= this._parent.scrollableAreaY1Position - 10 && 
                 this._transform._position.y <= this._parent.scrollableAreaY2Position - 15;
-
-        this.fieldNameYPosition = this._shape._transform._position.y + this._font._dimensions.height / 5;
-
-        this._fontIndexYPosition = this._index * this._font._dimensions.height;
 
         this.on('wheel', (initialYPosition)=>{
             this.position = {
@@ -55,7 +64,8 @@ export default class Field extends CanvasElement{
                 y: initialYPosition + this._fontIndexYPosition
             }; 
 
-            this.fieldNameYPosition = this._shape._transform._position.y + this._font._dimensions.height / 5;
+            this.fieldNameYPosition = this._transform._position.y + this._font._dimensions.height / 5;
+            this.fieldTypeXPosition = this._transform._position.x + this._transform._dimension.width - this.typeWidth - this._padding._right - this._parent._scrollBarWidth;
 
             this._draw = 
                 this._transform._position.y >= this._parent.scrollableAreaY1Position - 10 && 
@@ -81,10 +91,16 @@ export default class Field extends CanvasElement{
         this.on('mousemove', ({x, y})=>{
             if(this._draw && this._reactToIoEvents){
                 if (this.contains({x, y})) {
-                    this._shape._background.color = '#f3f2f2';
+                    this._shape._background.color = this._hoverBackground._color.rgba;
                 } else {
-                    this._shape._background.color = 'white';
+                    this._shape._background.color = this._backgroundColor._color.rgba;
                 }
+            }
+        });
+
+        this.on('mouseleave', (e) => {
+            if(this._draw && this._reactToIoEvents){
+                this._shape._background.color = this._backgroundColor._color.rgba;
             }
         });
     }
@@ -96,14 +112,15 @@ export default class Field extends CanvasElement{
             ctx.font = this._font.font2Canvas;
             ctx.textBaseline = 'top';
             ctx.fillStyle = this._font._color.hex;
+            this.typeWidth = ctx.measureText(this._type).width;
             ctx.fillText(
                 this._label,
-                this._shape._transform._position.x,
+                this._transform._position.x,
                 this.fieldNameYPosition
             );
             ctx.fillText(
                 this._type,
-                this.fieldTypeXPosition - 15,
+                this.fieldTypeXPosition,
                 this.fieldNameYPosition
             );
             ctx.restore();
@@ -114,16 +131,17 @@ export default class Field extends CanvasElement{
         const middleHeight = this._transform._dimension.height / 2;
         return {
             right: {
+                name: 'right',
                 x: this._parent._transform._position.x + this._parent._transform._dimension.width,
                 y: this._transform._position.y + middleHeight
             },
             left: {
+                name: 'left',
                 x: this._parent._transform._position.x,
                 y: this._transform._position.y + middleHeight
             },
         };
     }
-
 
     addConnection(connection){
         this._connection = connection;
@@ -132,18 +150,10 @@ export default class Field extends CanvasElement{
 
     setConnectionPoints(){
         if (this._connection) {
-            if (this._reference === this._parent._name) {
-                if (this._draw) {
-                    this._connection._from = this;
-                } else {
-                    this._connection._from = this._parent._header;
-                }
+            if (this._draw) {
+                this._connection._to = this;
             } else {
-                if (this._draw) {
-                    this._connection._to = this;
-                } else {
-                    this._connection._to = this._parent._footer;
-                }
+                this._connection._to = this._parent._footer;
             }
         }
     }
