@@ -1,6 +1,5 @@
 import { Canvas } from '@allanoricil/canvasjs';
 import Table from './table.js';
-import Connection from './connection.js';
 import gridSVG from '../../assets/images/grid.svg';
 
 export default class Schema {
@@ -9,7 +8,7 @@ export default class Schema {
         options,
         data
     }) {
-        options.backgroundImage = `url('${gridSVG}')`;
+        options.backgroundImage = options.backgroundImage || `url('${gridSVG}')`;
         this._canvas = new Canvas({
             canvas,
             options
@@ -61,10 +60,10 @@ export default class Schema {
     set data(data) {
         for (let [name, table] of Object.entries(data)) {
             const newTable = new Table(table, this._canvas);
-            this._canvas.canvasElementsManager.addCanvasElement(newTable);
+            this._canvas._canvasElementsManager.addCanvasElement(newTable);
         }
         
-        const tables = this._canvas.canvasElementsManager.getCanvasElementsInLayer(1);
+        const tables = this._canvas._canvasElementsManager.getCanvasElementsInLayer(1);
         for(let table of tables){
             table._fields.forEach((field) => {
                 if(field._reference)
@@ -79,7 +78,7 @@ export default class Schema {
         let data = {
             tables: []
         };
-        const tables = this._canvas.canvasElementsManager.getCanvasElementsInLayer(1);
+        const tables = this._canvas._canvasElementsManager.getCanvasElementsInLayer(1);
         for(let table of tables){
             let newDataTable = {
                 name: table._name,

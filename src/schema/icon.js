@@ -34,10 +34,10 @@ export default class Icon extends CanvasElement {
             border: border
         });
 
-        this.on('mousedrag', ({x, y}) => {
+        this.on('mousedrag', ({deltaX, deltaY}) => {
             this.position = {
-                x: this._transform._position.x + x,
-                y: this._transform._position.y + y
+                x: this._transform._position.x + deltaX,
+                y: this._transform._position.y + deltaY
             };
         });
     }

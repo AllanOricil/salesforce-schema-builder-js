@@ -35,10 +35,6 @@ export default class Connection extends CanvasElement{
         this._padding = padding || Connection.PADDING;
         this._path = [];
         this._reactToIoEvents = false;
-
-        this.on('update', ()=>{
-            this._path = this.getPath();
-        });
     }
 
     draw(ctx) {
@@ -86,70 +82,8 @@ export default class Connection extends CanvasElement{
         }
     }
 
-    getConnectionPoints() {
-        let connectionPoints = {};
-
-        const fromX1Position = this._from._transform._position.x;
-        const fromX2Position = fromX1Position + this._from._transform._dimension.width;
-        const toX1Position = this._to._transform._position.x;
-        const toX2Position = toX1Position + this._to._transform._dimension.width;
-
-        const fromConnectionPoints = this._from.connectionPoints;
-        const toConnectionPoints = this._to.connectionPoints;
-
-        if(this._to._parent._name === this._from._parent._name){
-            connectionPoints = {
-                origin: fromConnectionPoints.right,
-                destination: toConnectionPoints.right
-            };
-        }else{
-            if(
-                (this._to instanceof Field && this._from instanceof TableHeader) || 
-                (this._from instanceof Field && this._to instanceof TableFooter)
-            ){
-                let smallerDistance = Infinity;
-                for(const [fromName, fromPoint] of Object.entries(fromConnectionPoints)){
-                    for(const [toName, toPoint] of Object.entries(toConnectionPoints)){
-                        if(fromName === 'middle' || toName === 'middle') continue;
-                        const distance = Math.abs(fromPoint.x - toPoint.x);
-                        if(distance < smallerDistance){
-                            smallerDistance = distance;
-                            connectionPoints = {
-                                origin: fromPoint,
-                                destination: toPoint
-                            };
-                        }
-                    }
-                }
-            }else{
-                const isMiddle = (fromX1Position >= toX1Position && fromX1Position <= toX2Position) || 
-                                 (fromX2Position >= toX1Position && fromX2Position <= toX2Position);
-                if(isMiddle){
-                    connectionPoints = {
-                        origin: fromConnectionPoints.middle,
-                        destination: toConnectionPoints.middle
-                    };
-                }else{
-                    const distanceX = fromConnectionPoints.middle.x - toConnectionPoints.middle.x;
-                    if(distanceX > 0){
-                        connectionPoints = {
-                            origin: fromConnectionPoints.left,
-                            destination: toConnectionPoints.right
-                        };
-                    }else{
-                        connectionPoints = {
-                            origin: fromConnectionPoints.right,
-                            destination: toConnectionPoints.left
-                        };
-                    }
-                }
-            }
-        }
-        return connectionPoints;
-    }
-
-    getPath() {
-        const connectionPoints = this.getConnectionPoints();
+    updatePath() {
+        const connectionPoints = this._getConnectionPoints();
         const origin = connectionPoints.origin;
         const destination = connectionPoints.destination;
 
@@ -227,6 +161,73 @@ export default class Connection extends CanvasElement{
                 }
             }
         }
-        return path;
+        this._path = path;
+    }
+
+    changeColorsAlpha(newAlpha){
+        this._line._color._alpha = newAlpha;
+        this._connector._color._alpha = newAlpha;
+    }
+
+    _getConnectionPoints() {
+        let connectionPoints = {};
+
+        const fromX1Position = this._from._transform._position.x;
+        const fromX2Position = fromX1Position + this._from._transform._dimension.width;
+        const toX1Position = this._to._transform._position.x;
+        const toX2Position = toX1Position + this._to._transform._dimension.width;
+
+        const fromConnectionPoints = this._from.connectionPoints;
+        const toConnectionPoints = this._to.connectionPoints;
+
+        if(this._to._parent._name === this._from._parent._name){
+            connectionPoints = {
+                origin: fromConnectionPoints.right,
+                destination: toConnectionPoints.right
+            };
+        }else{
+            if(
+                (this._to instanceof Field && this._from instanceof TableHeader) || 
+                (this._from instanceof Field && this._to instanceof TableFooter)
+            ){
+                let smallerDistance = Infinity;
+                for(const [fromName, fromPoint] of Object.entries(fromConnectionPoints)){
+                    for(const [toName, toPoint] of Object.entries(toConnectionPoints)){
+                        if(fromName === 'middle' || toName === 'middle') continue;
+                        const distance = Math.abs(fromPoint.x - toPoint.x);
+                        if(distance < smallerDistance){
+                            smallerDistance = distance;
+                            connectionPoints = {
+                                origin: fromPoint,
+                                destination: toPoint
+                            };
+                        }
+                    }
+                }
+            }else{
+                const isMiddle = (fromX1Position >= toX1Position && fromX1Position <= toX2Position) || 
+                                 (fromX2Position >= toX1Position && fromX2Position <= toX2Position);
+                if(isMiddle){
+                    connectionPoints = {
+                        origin: fromConnectionPoints.middle,
+                        destination: toConnectionPoints.middle
+                    };
+                }else{
+                    const distanceX = fromConnectionPoints.middle.x - toConnectionPoints.middle.x;
+                    if(distanceX > 0){
+                        connectionPoints = {
+                            origin: fromConnectionPoints.left,
+                            destination: toConnectionPoints.right
+                        };
+                    }else{
+                        connectionPoints = {
+                            origin: fromConnectionPoints.right,
+                            destination: toConnectionPoints.left
+                        };
+                    }
+                }
+            }
+        }
+        return connectionPoints;
     }
 }

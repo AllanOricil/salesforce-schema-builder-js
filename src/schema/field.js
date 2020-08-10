@@ -58,6 +58,10 @@ export default class Field extends CanvasElement{
                 this._transform._position.y >= this._parent.scrollableAreaY1Position - 10 && 
                 this._transform._position.y <= this._parent.scrollableAreaY2Position - 15;
 
+        this.on('mousedown', ()=>{
+            if(this._connection) this._connection.changeColorsAlpha(1);
+        });
+
         this.on('wheel', (initialYPosition)=>{
             this.position = {
                 x: this._parent.scrollableAreaX1Position,
@@ -73,19 +77,19 @@ export default class Field extends CanvasElement{
 
             this.setConnectionPoints();
             
-            if(this._connection) this._connection.emit('update');
+            if(this._connection) this._connection.updatePath();
         });
 
-        this.on('mousedrag', ({x, y})=>{
+        this.on('mousedrag', ({deltaX, deltaY})=>{
             this.position = {
-                x: this._transform._position.x + x,
-                y: this._transform._position.y + y
+                x: this._transform._position.x + deltaX,
+                y: this._transform._position.y + deltaY
             };
 
-            this.fieldNameYPosition+=y;
-            this.fieldTypeXPosition+=x;
+            this.fieldNameYPosition = this._transform._position.y + this._font._dimensions.height / 5;
+            this.fieldTypeXPosition = this._transform._position.x + this._transform._dimension.width - this.typeWidth - this._padding._right - this._parent._scrollBarWidth;
 
-            if(this._connection) this._connection.emit('update');
+            if(this._connection) this._connection.updatePath();
         });
 
         this.on('mousemove', ({x, y})=>{
@@ -102,6 +106,8 @@ export default class Field extends CanvasElement{
             if(this._draw && this._reactToIoEvents){
                 this._shape._background.color = this._backgroundColor._color.rgba;
             }
+
+            if(this._connection) this._connection.changeColorsAlpha(0.2);
         });
     }
 

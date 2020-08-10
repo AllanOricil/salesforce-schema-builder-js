@@ -125,52 +125,53 @@ export default class Table extends CanvasElement {
         this.scrollbarX1Position = this.scrollableAreaX2Position - this._scrollBarWidth;
         this.percentOfVisibleFields =  (this.clipAreaHeight / this._fields[0]._font._dimensions.height) / this._fields.length;
         this.scrollbarSize = parseInt(this.clipAreaHeight * this.percentOfVisibleFields).toFixed(2);
-        this.initialFieldYPosition =  this.scrollableAreaY1Position + this._scrollPosition;
+        this.initialFieldYPosition =  this.scrollableAreaY1Position;
 
         this.on('mousedown', () =>{
-            this._canvas._canvasElementsManager.moveCanvasElementToLayer(this, 2);
+            if(this._scrollBarIsBeingHovered){
+                this._scrollBarIsSelected = true;
+            }else{
+                this._canvas._canvasElementsManager.moveCanvasElementToLayer(this, 2);
+                this._connections.forEach(connection => {
+                    if(connection) connection.changeColorsAlpha(1);
+                });
+
+                this._fields.forEach(field => field.emit('mousedown'));
+            }
         });
 
         this.on('click', ()=>{
             this._canvas._canvasElementsManager.moveCanvasElementToLayer(this, 2);
         });
 
-        this.on('mousedrag', ({x, y}) => {
-            const transformedPoint = this._canvas.getTransformedPoint(x, y);
+        this.on('mousedrag', ({deltaX, deltaY}) => {
             this.position = {
-                x: transformedPoint.x - this._transform._dimension.width / 2,
-                y: transformedPoint.y - this._transform._dimension.height / 2,
+                x: this._transform._position.x + deltaX,
+                y: this._transform._position.y + deltaY,
             };
             this._calculateScrollbarProperties();
-            const parentDragX = this._transform._position.x - this._transform._oldPosition.x;
-            const parentDragY = this._transform._position.y - this._transform._oldPosition.y;
-            this._header.emit('mousedrag', { x: parentDragX, y: parentDragY } );
-            this._footer.emit('mousedrag', { x: parentDragX, y: parentDragY } );
-            this._fields.forEach(field =>field.emit('mousedrag', {x: parentDragX, y: parentDragY}));
-
-
+            this._header.emit('mousedrag', { deltaX, deltaY } );
+            this._footer.emit('mousedrag', { deltaX, deltaY } );
+            this._fields.forEach(field => field.emit('mousedrag', { deltaX, deltaY }));
+            this.initialFieldYPosition = this.scrollableAreaY1Position;
             this._connections.forEach(connection => {
-                connection.emit('update');
+                connection.updatePath();
             });
+        });
+
+        this.on('mouseup', (e)=>{
+            this._scrollBarIsSelected = false;
         });
 
         this.on('wheel', (e) => {
             if(this.hasScroolBar){
-                let mousePosition = this._canvas.getTransformedPoint(e.offsetX, e.offsetY);
-                if (
-                    mousePosition.x >= this.scrollableAreaX1Position &&
-                    mousePosition.x <= this.scrollableAreaX2Position &&
-                    mousePosition.y >= this.scrollableAreaY1Position &&
-                    mousePosition.y <= this.scrollableAreaY2Position
-                ) {
-                    const delta = Math.sign(e.deltaY);
-                    const cond1 = this.initialFieldYPosition + this.scrollableAreaHeight > this.scrollableAreaY2Position;
-                    const cond2 = this.initialFieldYPosition < this.scrollableAreaY1Position;
-                    if ((cond1 && delta > 0) || (cond2 && delta < 0)) { 
-                        this._scrollPosition -= delta * 5;
-                        this.initialFieldYPosition =  this.scrollableAreaY1Position + this._scrollPosition;
-                        this._fields.forEach(field => field.emit('wheel', this.initialFieldYPosition));
-                    }
+                const delta = Math.sign(e.deltaY);
+                const canScrollDown = this.initialFieldYPosition + this.scrollableAreaHeight > this.scrollableAreaY2Position;
+                const canScrollUp = this.initialFieldYPosition < this.scrollableAreaY1Position;
+                if ((canScrollDown && delta > 0) || (canScrollUp && delta < 0)) { 
+                    this._scrollPosition -= delta * 5;
+                    this.initialFieldYPosition =  this.scrollableAreaY1Position + this._scrollPosition;
+                    this._fields.forEach(field => field.emit('wheel', this.initialFieldYPosition));
                 }
             }
         });
@@ -180,9 +181,11 @@ export default class Table extends CanvasElement {
                 field.emit('mousemove', {x, y});
             });
 
-            if (this._canvas.ctx.isPointInPath(this._scrollBar, x, y, 'nonzero')) {
+            if (this._canvas._ctx.isPointInPath(this._scrollBar, x, y, 'nonzero')) {
+                this._scrollBarIsBeingHovered = true;
                 this._scrollBarColor = 'rgba(0,0,0,0.3)';
             } else {
+                this._scrollBarIsBeingHovered = false;
                 this._scrollBarColor = 'rgba(0,0,0,0.2)';
             }
         });
@@ -193,9 +196,22 @@ export default class Table extends CanvasElement {
 
         this.on('mouseleave', (e) => {
             this._showScrollBar = false;
+            this._scrollBarIsBeingHovered = false;
             this._fields.forEach(field => {
                 field.emit('mouseleave');
             });
+
+            this._connections.forEach(connection => {
+                if(connection) connection.changeColorsAlpha(0.2);
+            });
+        });
+
+        this.on('select', ()=>{
+            this._selected = true;
+        });
+
+        this.on('deselect', ()=>{
+            this._selected = false;
         });
     }
 
@@ -249,6 +265,14 @@ export default class Table extends CanvasElement {
         }
 
         this._footer.draw(ctx);
+
+        if(this._selected){
+            ctx.save();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = 'rgb(255,0,0)';
+            ctx.strokeRect(this._transform._position.x, this._transform._position.y, this._transform._dimension.width, this._transform._dimension.height);
+            ctx.restore();
+        }
     }
 
     addField(field) {
@@ -282,7 +306,7 @@ export default class Table extends CanvasElement {
     }
 
     addConnectionToField(field, connection) {
-        const referenceTable = this._canvas.canvasElementsManager.getCanvasElementByName(field._reference);
+        const referenceTable = this._canvas._canvasElementsManager.getCanvasElementByName(field._reference);
         if (referenceTable) {
             const connectionToInsert = {
                 name: `${this._name}-${field.name}-${referenceTable._name}`,
@@ -295,7 +319,7 @@ export default class Table extends CanvasElement {
             const newConnection = new Connection(connectionToInsert, this._canvas);
             referenceTable._connections.push(newConnection);
             field.addConnection(newConnection);
-            this._canvas.canvasElementsManager.addCanvasElement(newConnection);
+            this._canvas._canvasElementsManager.addCanvasElement(newConnection);
         }
     }
 

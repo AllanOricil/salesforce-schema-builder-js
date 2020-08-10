@@ -1,6 +1,6 @@
 {
     "name": "@allanoricil/schema-builder",
-    "version": "0.9.0",
+    "version": "0.11.0",
     "description": "Draw Database Schemas",
     "main": "/dist/index.js",
     "module": "/dist/index.js",
@@ -51,7 +51,7 @@
         "webpack-dev-server": "^3.11.0"
     },
     "dependencies": {
-        "@allanoricil/canvasjs": "^0.8.0"
+        "@allanoricil/canvasjs": "^0.10.0"
     },
     "bugs": {
         "url": "https://github.com/AllanOricil/schema-builder-js/issues"
