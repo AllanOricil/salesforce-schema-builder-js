@@ -1,6 +1,6 @@
 import { Canvas } from '@allanoricil/canvasjs';
 import Table from './table.js';
-import gridSVG from '../../assets/images/grid.svg';
+import gridSVG from '../../assets/images/grid_lwc.svg';
 
 export default class Schema {
     constructor({
@@ -13,20 +13,20 @@ export default class Schema {
             canvas,
             options
         });
-        this.data = data;
+        if(data) this.data = data;
     }
 
     getTableByName(tableName) {
-        const table = this._canvas.canvasElementsManager.getCanvasElementByName(tableName);
+        const table = this._canvas._canvasElementsManager.getCanvasElementByName(tableName);
         if(table) return table;
         else throw new Error(`Table ${tableName} doesn't exist.`);
     }
 
     addTable(table) {
         const newTable = new Table(table, this._canvas);
-        this._canvas.canvasElementsManager.addCanvasElement(newTable);
+        this._canvas._canvasElementsManager.addCanvasElement(newTable);
 
-        const tables = this._canvas.canvasElementsManager.getCanvasElementsInLayer(1);
+        const tables = this._canvas._canvasElementsManager.getCanvasElementsInLayer(1);
         for(let table of tables){
             table._fields.forEach((field) => {
                 if(field._reference)
@@ -36,13 +36,13 @@ export default class Schema {
     }
 
     removeTableByName(name) {
-        const deletedEntity = this._canvas.canvasElementsManager.getCanvasElementByName(name); 
-        this._canvas.canvasElementsManager.removeCanvasElementByName(name);
-        const connections = this._canvas.canvasElementsManager.getCanvasElementsInLayer(0);
+        const deletedEntity = this._canvas._canvasElementsManager.getCanvasElementByName(name); 
+        this._canvas._canvasElementsManager.removeCanvasElementByName(name);
+        const connections = this._canvas._canvasElementsManager.getCanvasElementsInLayer(0);
 
         for(let connection of connections){
             if(connection._to._parent._name === deletedEntity._name || connection._from._parent._name == deletedEntity._name){
-                this._canvas.canvasElementsManager.removeCanvasElementByName(connection._name);
+                this._canvas._canvasElementsManager.removeCanvasElementByName(connection._name);
             }
         }
     }
@@ -58,7 +58,7 @@ export default class Schema {
     }
 
     set data(data) {
-        for (let [name, table] of Object.entries(data)) {
+        for (let table of Object.values(data)) {
             const newTable = new Table(table, this._canvas);
             this._canvas._canvasElementsManager.addCanvasElement(newTable);
         }
@@ -75,9 +75,7 @@ export default class Schema {
     }
 
     get data() {
-        let data = {
-            tables: []
-        };
+        let data = [];
         const tables = this._canvas._canvasElementsManager.getCanvasElementsInLayer(1);
         for(let table of tables){
             let newDataTable = {
@@ -96,7 +94,7 @@ export default class Schema {
                 });
             });
 
-            data.tables.push(newDataTable);
+            data.push(newDataTable);
         }
 
         return data;

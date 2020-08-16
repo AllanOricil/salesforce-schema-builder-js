@@ -6,7 +6,8 @@ import Connection from './connection.js';
 import {
     CanvasElement,
     Rectangle,
-    Font
+    Font,
+    Border
 } from '@allanoricil/canvasjs';
 
 export default class Table extends CanvasElement {
@@ -22,6 +23,7 @@ export default class Table extends CanvasElement {
         background,
         shadow,
         border,
+        onSelectedBorder,
         header,
         footer,
         padding
@@ -40,7 +42,8 @@ export default class Table extends CanvasElement {
             position: this._transform._position,
             dimension: this._transform._dimension,
             border,
-            background
+            background,
+            shadow
         });
 
         this._header = new TableHeader({
@@ -75,6 +78,8 @@ export default class Table extends CanvasElement {
             border: footer && footer.border ? footer.border : border,
             shadow
         }, canvas);
+
+        this._onSelectedBorder = new Border(onSelectedBorder);
 
         this._showScrollBar = false;
         this._scrollBarWidth = 10;
@@ -123,96 +128,9 @@ export default class Table extends CanvasElement {
         this.scrollableAreaHeight = this._fields.length != 0 ? this._fields.length * this._fields[0]._font._dimensions.height : 0;
         this.hasScroolBar = this.scrollableAreaHeight > this.clipAreaHeight;
         this.scrollbarX1Position = this.scrollableAreaX2Position - this._scrollBarWidth;
-        this.percentOfVisibleFields =  (this.clipAreaHeight / this._fields[0]._font._dimensions.height) / this._fields.length;
+        this.percentOfVisibleFields = this._fields.length != 0 ? ( (this.clipAreaHeight / this._fields[0]._font._dimensions.height) / this._fields.length ): 0;
         this.scrollbarSize = parseInt(this.clipAreaHeight * this.percentOfVisibleFields).toFixed(2);
         this.initialFieldYPosition =  this.scrollableAreaY1Position;
-
-        this.on('mousedown', () =>{
-            if(this._scrollBarIsBeingHovered){
-                this._scrollBarIsSelected = true;
-            }else{
-                this._canvas._canvasElementsManager.moveCanvasElementToLayer(this, 2);
-                this._connections.forEach(connection => {
-                    if(connection) connection.changeColorsAlpha(1);
-                });
-
-                this._fields.forEach(field => field.emit('mousedown'));
-            }
-        });
-
-        this.on('click', ()=>{
-            this._canvas._canvasElementsManager.moveCanvasElementToLayer(this, 2);
-        });
-
-        this.on('mousedrag', ({deltaX, deltaY}) => {
-            this.position = {
-                x: this._transform._position.x + deltaX,
-                y: this._transform._position.y + deltaY,
-            };
-            this._calculateScrollbarProperties();
-            this._header.emit('mousedrag', { deltaX, deltaY } );
-            this._footer.emit('mousedrag', { deltaX, deltaY } );
-            this._fields.forEach(field => field.emit('mousedrag', { deltaX, deltaY }));
-            this.initialFieldYPosition = this.scrollableAreaY1Position;
-            this._connections.forEach(connection => {
-                connection.updatePath();
-            });
-        });
-
-        this.on('mouseup', (e)=>{
-            this._scrollBarIsSelected = false;
-        });
-
-        this.on('wheel', (e) => {
-            if(this.hasScroolBar){
-                const delta = Math.sign(e.deltaY);
-                const canScrollDown = this.initialFieldYPosition + this.scrollableAreaHeight > this.scrollableAreaY2Position;
-                const canScrollUp = this.initialFieldYPosition < this.scrollableAreaY1Position;
-                if ((canScrollDown && delta > 0) || (canScrollUp && delta < 0)) { 
-                    this._scrollPosition -= delta * 5;
-                    this.initialFieldYPosition =  this.scrollableAreaY1Position + this._scrollPosition;
-                    this._fields.forEach(field => field.emit('wheel', this.initialFieldYPosition));
-                }
-            }
-        });
-
-        this.on('mousemove', ({x, y}) => {
-            this._fields.forEach(field => {
-                field.emit('mousemove', {x, y});
-            });
-
-            if (this._canvas._ctx.isPointInPath(this._scrollBar, x, y, 'nonzero')) {
-                this._scrollBarIsBeingHovered = true;
-                this._scrollBarColor = 'rgba(0,0,0,0.3)';
-            } else {
-                this._scrollBarIsBeingHovered = false;
-                this._scrollBarColor = 'rgba(0,0,0,0.2)';
-            }
-        });
-
-        this.on('mouseenter', (e) => {
-            this._showScrollBar = true;
-        });
-
-        this.on('mouseleave', (e) => {
-            this._showScrollBar = false;
-            this._scrollBarIsBeingHovered = false;
-            this._fields.forEach(field => {
-                field.emit('mouseleave');
-            });
-
-            this._connections.forEach(connection => {
-                if(connection) connection.changeColorsAlpha(0.2);
-            });
-        });
-
-        this.on('select', ()=>{
-            this._selected = true;
-        });
-
-        this.on('deselect', ()=>{
-            this._selected = false;
-        });
     }
 
     draw(ctx) {
@@ -233,26 +151,26 @@ export default class Table extends CanvasElement {
         );
         ctx.clip();
 
-        this._fields.forEach((field) => {
-            field.draw(ctx);
-        });
+        ctx.font = this._fields.length ? this._fields[0]._font.font2Canvas : null;
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = this._fields.length ? this._fields[0]._font._color.hex : null;
+        for(let i = 0; i < this._fields.length; i++){
+            const field = this._fields[i];
+            if(field._draw) field.draw(ctx);
+        }
         ctx.restore();
 
         //scrollbar
         if (this.hasScroolBar && this._showScrollBar) {
-            ctx.save();
             ctx.fillStyle = 'rgba(0,0,0,0.1)';
-            ctx.beginPath();
-            ctx.rect(
+            ctx.fillRect(
                 this.scrollbarX1Position,
                 this.scrollableAreaY1Position,
                 this._scrollBarWidth,
                 this.clipAreaHeight
             );
-            ctx.fill();
 
             ctx.fillStyle = this._scrollBarColor;
-            ctx.beginPath();
             this._scrollBar = new Path2D();
             this._scrollBar.rect(
                 this.scrollbarX1Position,
@@ -261,19 +179,140 @@ export default class Table extends CanvasElement {
                 this.scrollbarSize
             );
             ctx.fill(this._scrollBar);
-            ctx.restore();
         }
 
         this._footer.draw(ctx);
 
         if(this._selected){
             ctx.save();
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = 'rgb(255,0,0)';
-            ctx.strokeRect(this._transform._position.x, this._transform._position.y, this._transform._dimension.width, this._transform._dimension.height);
+            ctx.lineWidth = this._onSelectedBorder._lineWidth;
+            ctx.strokeStyle = this._onSelectedBorder._color.rgba;
+            var r = this._transform._position.x + this._transform._dimension.width;
+            var b = this._transform._position.y + this._transform._dimension.height;
+            ctx.beginPath();
+            ctx.moveTo(this._transform._position.x + this._shape._border._radius, this._transform._position.y);
+            ctx.lineTo(r - this._shape._border._radius, this._transform._position.y);
+            ctx.quadraticCurveTo(r, this._transform._position.y, r, this._transform._position.y + this._shape._border._radius);
+            ctx.lineTo(r, this._transform._position.y + this._transform._dimension.height - this._shape._border._radius);
+            ctx.quadraticCurveTo(r, b, r - this._shape._border._radius, b);
+            ctx.lineTo(this._transform._position.x + this._shape._border._radius, b);
+            ctx.quadraticCurveTo(this._transform._position.x, b, this._transform._position.x, b - this._shape._border._radius);
+            ctx.lineTo(this._transform._position.x, this._transform._position.y + this._shape._border._radius);
+            ctx.quadraticCurveTo(this._transform._position.x, this._transform._position.y, this._transform._position.x + this._shape._border._radius, this._transform._position.y);
+            ctx.closePath();
+            ctx.stroke();
             ctx.restore();
         }
     }
+
+    mouseDrag({deltaX, deltaY}){
+        this.position = {
+            x: this._transform._position.x + deltaX,
+            y: this._transform._position.y + deltaY,
+        };
+        this._calculateScrollbarProperties();
+        this._header.mousedrag({ deltaX, deltaY } );
+        this._footer.mousedrag({ deltaX, deltaY } );
+        for(let field of this._fields){
+            if(field._draw) field.mousedrag({ deltaX, deltaY });
+            if(field._connection) field._connection.updatePath();
+        }
+        this.initialFieldYPosition = this.scrollableAreaY1Position + deltaY;
+        this._connections.forEach(connection => {
+            connection.updatePath();
+        });
+    };
+
+    mousedown(e){
+        this._showScrollBar = true;
+        this._selected = true;
+        if(this._scrollBarIsBeingHovered){
+            this._scrollBarIsSelected = true;
+        }else{
+            this._canvas._canvasElementsManager.moveCanvasElementToLayer(this, 2);
+            this._connections.forEach(connection => {
+                if(connection) connection.changeAlphaColor(1);
+            });
+            for(let field of this._fields){
+                if(field._connection) {
+                    field._connection.changeAlphaColor(1);
+                }
+            }
+        }
+    };
+
+    mouseup(e){
+        this._scrollBarIsSelected = false;
+    };
+
+    click(e){
+        this._canvas._canvasElementsManager.moveCanvasElementToLayer(this, 2);
+        for(let field of this._fields){
+            if(field._draw) field.click(e);
+        }
+        this.emit('clicktable');
+    };
+
+    clickout(e){
+        this._showScrollBar = false;
+        this._scrollBarIsBeingHovered = false;
+        this._canvas._canvasElementsManager.moveCanvasElementToLayer(this, 1);
+        for(let field of this._fields){
+            if(field._connection) field._connection.changeAlphaColor(0.2);
+        }
+        this._connections.forEach(connection => {
+            if(connection) connection.changeAlphaColor(0.2);
+        });
+        this._selected = false;
+    }
+
+    dblclick(e){
+        this._canvas._canvasElementsManager.moveCanvasElementToLayer(this, 2);
+        this._drawAjustDimensionPoints = true;
+        this.emit('dblclicktable');
+    };
+
+    wheel(e){
+        if(this.hasScroolBar){
+            const delta = Math.sign(e.deltaY);
+            const canScrollDown = this.initialFieldYPosition + this.scrollableAreaHeight > this.scrollableAreaY2Position && delta > 0;
+            const canScrollUp = this.initialFieldYPosition < this.scrollableAreaY1Position && delta < 0;
+            if (canScrollDown || canScrollUp) { 
+                this._scrollPosition -= delta * 5;
+                this.initialFieldYPosition =  this.scrollableAreaY1Position + this._scrollPosition;
+                for(let field of this._fields){
+                    field.wheel(this.initialFieldYPosition);
+                }
+            }
+        }
+    };
+
+    mousemove({x, y}){
+        for(let field of this._fields){
+            if(field._draw) field.mousemove({x, y});
+        }
+
+        if (this._canvas._ctx.isPointInPath(this._scrollBar, x, y, 'nonzero')) {
+            this._scrollBarIsBeingHovered = true;
+            this._scrollBarColor = 'rgba(0,0,0,0.3)';
+        } else {
+            this._scrollBarIsBeingHovered = false;
+            this._scrollBarColor = 'rgba(0,0,0,0.2)';
+        }
+    };
+
+    mouseenter(){
+        this._showScrollBar = true;
+    };
+
+    mouseleave(){
+        this._showScrollBar = false;
+        this._scrollBarIsBeingHovered = false;
+        for(let field of this._fields){
+            if(field._draw) field.mouseleave();
+        }
+    };
+
 
     addField(field) {
         const fieldFont = field.font ? new Font(field.font) : Font.ARIAL;
@@ -297,7 +336,7 @@ export default class Table extends CanvasElement {
             index: this._fields.length
         }, this._canvas);
         this._fields.push(fieldToInsert);
-        if(field.reference) this.addConnectionToField(fieldToInsert, field.connection);
+        if(field.reference) this.addConnectionToField(fieldToInsert);
         this._calculateScrollbarProperties();
     }
 
@@ -305,14 +344,14 @@ export default class Table extends CanvasElement {
         return this._fields.find(field => field._name === fieldName);
     }
 
-    addConnectionToField(field, connection) {
+    addConnectionToField(field) {
         const referenceTable = this._canvas._canvasElementsManager.getCanvasElementByName(field._reference);
         if (referenceTable) {
             const connectionToInsert = {
-                name: `${this._name}-${field.name}-${referenceTable._name}`,
+                name: `${this._name}-${field._name}-${referenceTable._name}`,
                 isEditable: false,
-                connector: connection.connector,
-                line: connection.line,
+                connector: field._connectionStyles.connector,
+                line: field._connectionStyles.line,
                 to: field,
                 from: referenceTable._header
             };
@@ -330,10 +369,10 @@ export default class Table extends CanvasElement {
         this.scrollableAreaY1Position = this._shape._transform._position.y + this._header._transform._dimension.height + 10;
         this.scrollableAreaY2Position = this._shape._transform._position.y + this._shape._transform._dimension.height - this._footer._transform._dimension.height - 10;
         this.clipAreaHeight = this._shape._transform._dimension.height - this._header._transform._dimension.height - this._footer._transform._dimension.height - 20;
-        this.scrollableAreaHeight = this._fields.length * this._fields[0]._font._dimensions.height;
+        this.scrollableAreaHeight = this._fields.length != 0 ? this._fields.length * this._fields[0]._font._dimensions.height : 0;
         this.hasScroolBar = this.scrollableAreaHeight > this.clipAreaHeight;
         this.scrollbarX1Position = this.scrollableAreaX2Position - this._scrollBarWidth;
-        this.percentOfVisibleFields =  (this.clipAreaHeight / this._fields[0]._font._dimensions.height) / this._fields.length;
+        this.percentOfVisibleFields =  this._fields.length != 0 ? ((this.clipAreaHeight / this._fields[0]._font._dimensions.height) / this._fields.length): 0;
         this.scrollbarSize = parseInt(this.clipAreaHeight * this.percentOfVisibleFields).toFixed(2);
     }
     

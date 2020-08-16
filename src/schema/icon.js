@@ -13,14 +13,14 @@ export default class Icon extends CanvasElement {
         background,
         border,
         parent
-    }) {
+    }, canvas) {
         super({
             name,
             position,
             padding,
             dimension,
             parent
-        });
+        }, canvas);
         this._draw = false;
         this._image = new Image();
         this._image.src = src;
@@ -33,27 +33,23 @@ export default class Icon extends CanvasElement {
             background: background,
             border: border
         });
-
-        this.on('mousedrag', ({deltaX, deltaY}) => {
-            this.position = {
-                x: this._transform._position.x + deltaX,
-                y: this._transform._position.y + deltaY
-            };
-        });
     }
 
     draw(ctx) {
-        if(this._draw){
-            ctx.save();
-            this._shape.draw(ctx);
-            ctx.drawImage(
-                this._image,
-                this._transform._position.x,
-                this._transform._position.y,
-                this._transform._dimension.width,
-                this._transform._dimension.height
-            );
-            ctx.restore();
-        }
+        this._shape.draw(ctx);
+        ctx.drawImage(
+            this._image,
+            this._transform._position.x,
+            this._transform._position.y,
+            this._transform._dimension.width,
+            this._transform._dimension.height
+        );
     }
+
+    mousedrag({deltaX, deltaY}){
+        this.position = {
+            x: this._transform._position.x + deltaX,
+            y: this._transform._position.y + deltaY
+        };
+    };
 }

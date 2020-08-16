@@ -83,7 +83,7 @@ export default class Connection extends CanvasElement{
     }
 
     updatePath() {
-        const connectionPoints = this._getConnectionPoints();
+        const connectionPoints = this._chooseConnectionPoints();
         const origin = connectionPoints.origin;
         const destination = connectionPoints.destination;
 
@@ -164,12 +164,12 @@ export default class Connection extends CanvasElement{
         this._path = path;
     }
 
-    changeColorsAlpha(newAlpha){
+    changeAlphaColor(newAlpha){
         this._line._color._alpha = newAlpha;
         this._connector._color._alpha = newAlpha;
     }
 
-    _getConnectionPoints() {
+    _chooseConnectionPoints() {
         let connectionPoints = {};
 
         const fromX1Position = this._from._transform._position.x;

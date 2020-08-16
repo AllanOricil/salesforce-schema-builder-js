@@ -47,39 +47,42 @@ export default class TableHeader extends CanvasElement{
                 background: icon.background,
                 padding: icon.padding,
                 border: icon.border,
-            });
+            }, canvas);
         }
 
-        this._connection = undefined;
+        this._headerPositionX = this._transform._position.x + this._padding._left + this._icon._transform._dimension.width + this._icon._padding._right;
+        this._headerTextPositionY = this._shape._transform._position.y + this._padding._top;
 
-        this.on('mousedrag', ({deltaX, deltaY})=>{
-            this.position = {
-                x: this._transform._position.x + deltaX,
-                y: this._transform._position.y + deltaY
-            };
-            this._icon.emit('mousedrag', {deltaX, deltaY});
-        });
+        this._connection = undefined;
     }
 
     draw(ctx){
         this._shape.draw(ctx);
         //title
-        ctx.save();
         ctx.font = this._font.font2Canvas;
         ctx.textBaseline = 'top';
         ctx.fillStyle = this._font._color.hex;
         ctx.fillText(
             this._title, 
-            this._shape._transform._position.x + this._padding._left + this._icon._transform._dimension.width + this._icon._padding._right, 
-            this._shape._transform._position.y + this._padding._top
+            this._headerPositionX, 
+            this._headerTextPositionY
         );
-        ctx.restore();
-
         //icon
         if(this._icon){
             this._icon.draw(ctx);
         }
     }
+
+    mousedrag({deltaX, deltaY}){
+        this.position = {
+            x: this._transform._position.x + deltaX,
+            y: this._transform._position.y + deltaY
+        };
+
+        this._headerPositionX+=deltaX;
+        this._headerTextPositionY+=deltaY;
+        this._icon.mousedrag({deltaX, deltaY});
+    };
 
     get connectionPoints(){
         const middleHeight = this._transform._dimension.height / 2;

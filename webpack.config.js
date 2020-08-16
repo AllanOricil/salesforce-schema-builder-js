@@ -1,6 +1,5 @@
 const path = require('path');
 const TerserPlugin = require('terser-webpack-plugin');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
 module.exports = {
@@ -17,11 +16,9 @@ module.exports = {
             new TerserPlugin({
                 terserOptions: {
                     compress: {
-                        // Drop only console.logs but leave others
                         pure_funcs: ['console.log'],
                     },
                     mangle: {
-                        // Note: I'm not certain this is needed.
                         reserved: ['console.log'],
                     },
                     keep_fnames: false,
@@ -31,28 +28,10 @@ module.exports = {
         ],
     },
     plugins: [
-        new MiniCssExtractPlugin(
-            {
-                filename: '[name].[hash].css',
-                chunkFilename: '[id].[hash].css',
-            }
-        ),
         new CleanWebpackPlugin(),
     ],
     module: {
         rules: [
-            {
-                test: /\.(svg)$/i,
-                use: [
-                    {
-                        loader: 'svg-url-loader',
-                        options: {
-                            limit: 8192,
-                            outputPath: 'assets/images/'
-                        },
-                    },
-                ]
-            },
             {
                 test: /\.json5$/i,
                 loader: 'json5-loader',
@@ -63,15 +42,19 @@ module.exports = {
             },
             {
                 test: /\.css$/,
-                use: [MiniCssExtractPlugin.loader, 'css-loader']
+                use: [
+                    'style-loader',
+                    {
+                        loader: 'css-loader',
+                        options: {
+                            modules: true,
+                        }
+                    }
+                ]
             },
             {
-                test: /\.(ttf|woff|woff2)$/,
-                loader: 'url-loader',
-                options: {
-                    name: '[name].[ext]',
-                    outputPath: 'assets/fonts/'
-                }
+                test: /\.(jpe?g|png|ttf|eot|svg|woff(2)?)(\?[a-z0-9=&.]+)?$/,
+                use: 'base64-inline-loader?limit=1000&name=[name].[ext]'
             }
         ],
     },

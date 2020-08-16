@@ -31,20 +31,18 @@ export default class TableFooter extends CanvasElement {
         });
         
         this._connection = undefined;
-
-        this.on('mousedrag', ({deltaX, deltaY})=>{
-            this.position = {
-                x: this._transform._position.x + deltaX,
-                y: this._transform._position.y + deltaY
-            };
-        });
     }
 
     draw(ctx) {
-        ctx.save();
         this._shape.draw(ctx);
-        ctx.restore();
     }
+
+    mousedrag({deltaX, deltaY}){
+        this.position = {
+            x: this._transform._position.x + deltaX,
+            y: this._transform._position.y + deltaY
+        };
+    };
 
     get connectionPoints(){
         const middleHeight = this._transform._dimension.height / 2;

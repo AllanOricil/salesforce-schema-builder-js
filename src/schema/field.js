@@ -49,89 +49,83 @@ export default class Field extends CanvasElement{
         this.typeWidth = canvas._ctx.measureText(this._type).width;
         canvas._ctx.restore();
         
-        this.fieldNameYPosition = this._transform._position.y + this._font._dimensions.height / 5;
-        this.fieldTypeXPosition = this._transform._position.x + this._transform._dimension.width - this.typeWidth - this._padding._right - this._parent._scrollBarWidth;
+        this.fieldNamePositionY = this._transform._position.y + this._font._dimensions.height / 5;
+        this.fieldTypePositionX = this._transform._position.x + this._transform._dimension.width - this.typeWidth - this._padding._right - this._parent._scrollBarWidth;
         this._index = index;
         this._fontIndexYPosition = this._index * this._font._dimensions.height;
 
         this._draw = 
                 this._transform._position.y >= this._parent.scrollableAreaY1Position - 10 && 
                 this._transform._position.y <= this._parent.scrollableAreaY2Position - 15;
-
-        this.on('mousedown', ()=>{
-            if(this._connection) this._connection.changeColorsAlpha(1);
-        });
-
-        this.on('wheel', (initialYPosition)=>{
-            this.position = {
-                x: this._parent.scrollableAreaX1Position,
-                y: initialYPosition + this._fontIndexYPosition
-            }; 
-
-            this.fieldNameYPosition = this._transform._position.y + this._font._dimensions.height / 5;
-            this.fieldTypeXPosition = this._transform._position.x + this._transform._dimension.width - this.typeWidth - this._padding._right - this._parent._scrollBarWidth;
-
-            this._draw = 
-                this._transform._position.y >= this._parent.scrollableAreaY1Position - 10 && 
-                this._transform._position.y <= this._parent.scrollableAreaY2Position - 15;
-
-            this.setConnectionPoints();
-            
-            if(this._connection) this._connection.updatePath();
-        });
-
-        this.on('mousedrag', ({deltaX, deltaY})=>{
-            this.position = {
-                x: this._transform._position.x + deltaX,
-                y: this._transform._position.y + deltaY
-            };
-
-            this.fieldNameYPosition = this._transform._position.y + this._font._dimensions.height / 5;
-            this.fieldTypeXPosition = this._transform._position.x + this._transform._dimension.width - this.typeWidth - this._padding._right - this._parent._scrollBarWidth;
-
-            if(this._connection) this._connection.updatePath();
-        });
-
-        this.on('mousemove', ({x, y})=>{
-            if(this._draw && this._reactToIoEvents){
-                if (this.contains({x, y})) {
-                    this._shape._background.color = this._hoverBackground._color.rgba;
-                } else {
-                    this._shape._background.color = this._backgroundColor._color.rgba;
-                }
-            }
-        });
-
-        this.on('mouseleave', (e) => {
-            if(this._draw && this._reactToIoEvents){
-                this._shape._background.color = this._backgroundColor._color.rgba;
-            }
-
-            if(this._connection) this._connection.changeColorsAlpha(0.2);
-        });
     }
 
     draw(ctx){
-        if(this._draw){
-            ctx.save();
-            this._shape.draw(ctx);
-            ctx.font = this._font.font2Canvas;
-            ctx.textBaseline = 'top';
-            ctx.fillStyle = this._font._color.hex;
-            this.typeWidth = ctx.measureText(this._type).width;
-            ctx.fillText(
-                this._label,
-                this._transform._position.x,
-                this.fieldNameYPosition
-            );
-            ctx.fillText(
-                this._type,
-                this.fieldTypeXPosition,
-                this.fieldNameYPosition
-            );
-            ctx.restore();
-        }
+        this._shape.draw(ctx);
+        ctx.font = this._font.font2Canvas;
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = this._font._color.hex;
+        this.typeWidth = ctx.measureText(this._type).width;
+        ctx.fillText(
+            this._label,
+            this._transform._position.x,
+            this.fieldNamePositionY
+        );
+        ctx.fillText(
+            this._type,
+            this.fieldTypePositionX,
+            this.fieldNamePositionY
+        );
     }
+
+    click(e){
+        if(this.contains({ x: e.offsetX, y: e.offsetY })){
+            this.emit('clickfield');
+        }
+    };
+
+    wheel(initialYPosition){
+        this.position = {
+            x: this._parent.scrollableAreaX1Position,
+            y: initialYPosition + this._fontIndexYPosition
+        }; 
+
+        this.fieldNamePositionY = this._transform._position.y + this._font._dimensions.height / 5;
+        this.fieldTypePositionX = this._transform._position.x + this._transform._dimension.width - this.typeWidth - this._padding._right - this._parent._scrollBarWidth;
+
+        this._draw = 
+            this._transform._position.y >= this._parent.scrollableAreaY1Position - 10 && 
+            this._transform._position.y <= this._parent.scrollableAreaY2Position - 15;
+
+        this.setConnectionPoints();
+        
+        if(this._connection) this._connection.updatePath();
+    };
+
+    mousedrag({deltaX, deltaY}){
+        this.position = {
+            x: this._transform._position.x + deltaX,
+            y: this._transform._position.y + deltaY
+        };
+
+        this.fieldNamePositionY = this._transform._position.y + this._font._dimensions.height / 5;
+        this.fieldTypePositionX = this._transform._position.x + this._transform._dimension.width - this.typeWidth - this._padding._right - this._parent._scrollBarWidth;
+
+        if(this._connection) this._connection.updatePath();
+    };
+
+    mousemove({x, y}){
+        if(this._draw && this._reactToIoEvents){
+            if (this.contains({x, y})) {
+                this._shape._background.color = this._hoverBackground._color.rgba;
+            } else {
+                this._shape._background.color = this._backgroundColor._color.rgba;
+            }
+        }
+    };
+
+    mouseleave(e){
+        this._shape._background.color = this._backgroundColor._color.rgba;
+    };
 
     get connectionPoints(){
         const middleHeight = this._transform._dimension.height / 2;
