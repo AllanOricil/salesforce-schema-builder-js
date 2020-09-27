@@ -37,13 +37,15 @@ export default class Icon extends CanvasElement {
 
     draw(ctx) {
         this._shape.draw(ctx);
-        ctx.drawImage(
-            this._image,
-            this._transform._position.x,
-            this._transform._position.y,
-            this._transform._dimension.width,
-            this._transform._dimension.height
-        );
+        
+        if(this._draw)
+            ctx.drawImage(
+                this._image,
+                this._transform._position.x,
+                this._transform._position.y,
+                this._transform._dimension.width,
+                this._transform._dimension.height
+            );
     }
 
     mousedrag({deltaX, deltaY}){

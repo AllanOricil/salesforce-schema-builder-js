@@ -13,6 +13,7 @@ export default class Schema {
             canvas,
             options
         });
+
         if(data) this.data = data;
     }
 
@@ -20,6 +21,11 @@ export default class Schema {
         const table = this._canvas._canvasElementsManager.getCanvasElementByName(tableName);
         if(table) return table;
         else throw new Error(`Table ${tableName} doesn't exist.`);
+    }
+
+    getFieldByNameFromTable(fieldName, tableName){
+        const table = this.getTableByName(tableName);
+        return table.getFieldByName(fieldName);
     }
 
     addTable(table) {
@@ -33,6 +39,8 @@ export default class Schema {
                     table.addConnectionToField(field);
             });
         }
+
+        this._canvas.draw();
     }
 
     removeTableByName(name) {
@@ -45,16 +53,20 @@ export default class Schema {
                 this._canvas._canvasElementsManager.removeCanvasElementByName(connection._name);
             }
         }
+
+        this._canvas.draw();
     }
 
-    addFieldToTable(field, tableName){
+    addFieldToTable(field, tableName, index){
         const table = this.getTableByName(tableName);
-        table.addField(field);
+        table.addField(field, index);
+        this._canvas.draw();
     }
 
-    getFieldByNameFromTable(fieldName, tableName){
+    removeFieldFromTable(fieldName, tableName){
         const table = this.getTableByName(tableName);
-        return table.getFieldByName(fieldName);
+        table.removeField(fieldName);
+        this._canvas.draw();
     }
 
     set data(data) {
@@ -108,6 +120,14 @@ export default class Schema {
         ) {
             window[event] = callback;
         } else this._canvas._el.addEventListener(event, callback);
+    }
+
+    getTransformedPoint(x, y){
+        return this._canvas.getTransformedPoint(x, y);
+    }
+
+    deselectAllTables(){
+        this._canvas.deselectAllCanvasElements();
     }
 
     saveAsImage(name) {

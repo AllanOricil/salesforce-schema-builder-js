@@ -10,7 +10,7 @@ module.exports = {
         library: 'schemaBuilder',
         libraryTarget: 'umd',
     },
-    devtool: 'inline-source-map',
+    devtool: 'source-map',
     devServer: {
         contentBase: path.join(__dirname, 'dist'),
         compress: true,
@@ -21,6 +21,13 @@ module.exports = {
     ],
     module: {
         rules: [
+            {
+                test: /\.worker\.js$/,
+                loader: 'worker-loader', 
+                options: { 
+                    inline: 'fallback' 
+                }
+            },
             {
                 test: /\.json5$/i,
                 loader: 'json5-loader',

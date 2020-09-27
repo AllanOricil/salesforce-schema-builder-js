@@ -35,7 +35,6 @@ export default class Table extends CanvasElement {
             padding
         }, canvas);
         this._z = 1;
-        this._label = label;
         this._font = font ? new Font(font) : Font.ARIAL;
         this._isDraggable = isDraggable || false;
         this._shape = new Rectangle({
@@ -224,21 +223,17 @@ export default class Table extends CanvasElement {
     };
 
     mousedown(e){
+        this.select();
         this._showScrollBar = true;
-        this._selected = true;
-        if(this._scrollBarIsBeingHovered){
-            this._scrollBarIsSelected = true;
-        }else{
-            this._canvas._canvasElementsManager.moveCanvasElementToLayer(this, 2);
-            this._connections.forEach(connection => {
-                if(connection) connection.changeAlphaColor(1);
-            });
-            for(let field of this._fields){
-                if(field._connection) {
-                    field._connection.changeAlphaColor(1);
-                }
+        if(this._scrollBarIsBeingHovered) this._scrollBarIsSelected = true;
+        let clickedOnField = false;
+        for(let field of this._fields){
+            if(field._draw && field._reactToIoEvents && field.contains({ x: e.offsetX, y: e.offsetY })) {
+                clickedOnField = true;
+                break;
             }
         }
+        if(!clickedOnField)this.emit('selecttable');
     };
 
     mouseup(e){
@@ -246,28 +241,26 @@ export default class Table extends CanvasElement {
     };
 
     click(e){
-        this._canvas._canvasElementsManager.moveCanvasElementToLayer(this, 2);
-        for(let field of this._fields){
-            if(field._draw) field.click(e);
+        this.moveToLayer(2);
+        let clickedOnField = false;
+        for(let i = 0; i < this._fields.length; i++){
+            const field = this._fields[i];
+            if(field._draw && field._reactToIoEvents && field.contains({ x: e.offsetX, y: e.offsetY })) {
+                clickedOnField = true;
+                field.click(e);
+                break;
+            }
         }
-        this.emit('clicktable');
     };
 
     clickout(e){
         this._showScrollBar = false;
         this._scrollBarIsBeingHovered = false;
-        this._canvas._canvasElementsManager.moveCanvasElementToLayer(this, 1);
-        for(let field of this._fields){
-            if(field._connection) field._connection.changeAlphaColor(0.2);
-        }
-        this._connections.forEach(connection => {
-            if(connection) connection.changeAlphaColor(0.2);
-        });
-        this._selected = false;
+        this.deselect();
     }
 
     dblclick(e){
-        this._canvas._canvasElementsManager.moveCanvasElementToLayer(this, 2);
+        this.moveToLayer(2);
         this._drawAjustDimensionPoints = true;
         this.emit('dblclicktable');
     };
@@ -289,7 +282,9 @@ export default class Table extends CanvasElement {
 
     mousemove({x, y}){
         for(let field of this._fields){
-            if(field._draw) field.mousemove({x, y});
+            if(field._draw && field._reactToIoEvents){
+                field.mousemove({x, y});
+            }
         }
 
         if (this._canvas._ctx.isPointInPath(this._scrollBar, x, y, 'nonzero')) {
@@ -313,8 +308,12 @@ export default class Table extends CanvasElement {
         }
     };
 
-
-    addField(field) {
+    addField(field, index) {
+        const fieldIndex = this._fields.findIndex(searchedField => searchedField._name === field.name);
+        if(fieldIndex > -1){
+            this._fields.splice(fieldIndex, 1);
+            index = fieldIndex;
+        }
         const fieldFont = field.font ? new Font(field.font) : Font.ARIAL;
         const fieldToInsert = new Field({
             label: field.label,
@@ -322,8 +321,8 @@ export default class Table extends CanvasElement {
             parent: this,
             reference: field.reference,
             position: {
-                x: this._transform._position.x,
-                y: this._transform._position.y + fieldFont._dimensions.height * this._fields.length
+                x: this.scrollableAreaX1Position,
+                y: this.scrollableAreaY1Position + fieldFont._dimensions.height * this._fields.length
             },
             dimension: {
                 width: this.scrollableAreaWdith - this._scrollBarWidth,
@@ -333,11 +332,50 @@ export default class Table extends CanvasElement {
             border: field.border,
             padding: field.padding || { left: 15, top: 0, right: 0, bottom: 0},
             type: field.type,
-            index: this._fields.length
+            background: field.background,
+            hoverBackground: field.hoverBackground,
+            connectionStyles: field.connection,
+            index: index || this._fields.length
         }, this._canvas);
-        this._fields.push(fieldToInsert);
-        if(field.reference) this.addConnectionToField(fieldToInsert);
+
+        if(index >= 0){
+            this._fields.splice(index, 0, fieldToInsert);
+            this._fields.forEach((field, index) => {
+                field._index = index;
+                field._fieldIndexYPosition = field._index * field._font._dimensions.height;
+                field.wheel(this.initialFieldYPosition);
+            });
+        }else{
+            this._fields.push(fieldToInsert);
+        }
         this._calculateScrollbarProperties();
+        if(field.reference) this.addConnectionToField(fieldToInsert);
+    }
+
+    removeField(fieldName){
+        for(let i = 0; i < this._fields.length; i++){
+            const field = this._fields[i];
+            if(field._name === fieldName){
+                this._fields.splice(i, 1);
+                this._fields.forEach((field, index) => {
+                    field._index = index;
+                    field._fieldIndexYPosition = field._index * field._font._dimensions.height;
+                    field.wheel(this.initialFieldYPosition);
+                });
+                
+                if(field._connection) this._canvas._canvasElementsManager.removeCanvasElementByName(field._connection._name);
+
+                for(let j = 0 ; j < this._connections.length; j++){
+                    const connection = this._connections[i];
+                    if(connection._id === field._connection.id){
+                        this._connections.splice(j, 1);
+                        break;
+                    }
+                }
+                this._calculateScrollbarProperties();
+                break;
+            }
+        }
     }
 
     getFieldByName(fieldName){
@@ -360,6 +398,32 @@ export default class Table extends CanvasElement {
             field.addConnection(newConnection);
             this._canvas._canvasElementsManager.addCanvasElement(newConnection);
         }
+    }
+
+    setTitle(newTitle){
+        this._header._title = newTitle;
+    }
+
+    select(){
+        this.moveToLayer(2);
+        this._selected = true;
+        this._connections.forEach(connection => {
+            if(connection) connection.changeAlphaColor(1);
+        });
+        this._fields.forEach(field => {
+            if(field._connection) field._connection.changeAlphaColor(1);
+        });
+    }
+
+    deselect(){
+        this.moveToLayer(1);
+        this._selected = false;
+        this._fields.forEach(field => {
+            if(field._connection) field._connection.changeAlphaColor(0.2);
+        });
+        this._connections.forEach(connection => {
+            if(connection) connection.changeAlphaColor(0.2);
+        });
     }
 
     _calculateScrollbarProperties(){

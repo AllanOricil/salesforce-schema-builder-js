@@ -52,7 +52,8 @@ export default class Field extends CanvasElement{
         this.fieldNamePositionY = this._transform._position.y + this._font._dimensions.height / 5;
         this.fieldTypePositionX = this._transform._position.x + this._transform._dimension.width - this.typeWidth - this._padding._right - this._parent._scrollBarWidth;
         this._index = index;
-        this._fontIndexYPosition = this._index * this._font._dimensions.height;
+        this._referentialYPosition = this._parent.scrollableAreaY1Position;
+        this._fieldIndexYPosition = this._index * this._font._dimensions.height;
 
         this._draw = 
                 this._transform._position.y >= this._parent.scrollableAreaY1Position - 10 && 
@@ -78,15 +79,14 @@ export default class Field extends CanvasElement{
     }
 
     click(e){
-        if(this.contains({ x: e.offsetX, y: e.offsetY })){
-            this.emit('clickfield');
-        }
+        this.emit('selectfield');
     };
 
     wheel(initialYPosition){
+        this._referentialYPosition = initialYPosition;
         this.position = {
             x: this._parent.scrollableAreaX1Position,
-            y: initialYPosition + this._fontIndexYPosition
+            y: this._referentialYPosition + this._fieldIndexYPosition
         }; 
 
         this.fieldNamePositionY = this._transform._position.y + this._font._dimensions.height / 5;
@@ -107,19 +107,17 @@ export default class Field extends CanvasElement{
             y: this._transform._position.y + deltaY
         };
 
-        this.fieldNamePositionY = this._transform._position.y + this._font._dimensions.height / 5;
-        this.fieldTypePositionX = this._transform._position.x + this._transform._dimension.width - this.typeWidth - this._padding._right - this._parent._scrollBarWidth;
+        this.fieldNamePositionY += deltaY;
+        this.fieldTypePositionX += deltaX;
 
         if(this._connection) this._connection.updatePath();
     };
 
     mousemove({x, y}){
-        if(this._draw && this._reactToIoEvents){
-            if (this.contains({x, y})) {
-                this._shape._background.color = this._hoverBackground._color.rgba;
-            } else {
-                this._shape._background.color = this._backgroundColor._color.rgba;
-            }
+        if (this.contains({x, y})) {
+            this._shape._background.color = this._hoverBackground._color.rgba;
+        } else {
+            this._shape._background.color = this._backgroundColor._color.rgba;
         }
     };
 
@@ -146,6 +144,7 @@ export default class Field extends CanvasElement{
     addConnection(connection){
         this._connection = connection;
         this.setConnectionPoints();
+        this._connection.updatePath();
     }
 
     setConnectionPoints(){
@@ -156,5 +155,9 @@ export default class Field extends CanvasElement{
                 this._connection._to = this._parent._footer;
             }
         }
+    }
+
+    setLabel(newLabel){
+        this._label = newLabel;
     }
 }

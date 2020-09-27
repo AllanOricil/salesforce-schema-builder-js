@@ -1,6 +1,7 @@
 const path = require('path');
 const TerserPlugin = require('terser-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const JavaScriptObfuscator = require('webpack-obfuscator');
 
 module.exports = {
     mode: 'production',
@@ -29,9 +30,19 @@ module.exports = {
     },
     plugins: [
         new CleanWebpackPlugin(),
+        new JavaScriptObfuscator ({
+            rotateUnicodeArray: true
+        }, ['excluded_bundle_name.js']),
     ],
     module: {
         rules: [
+            {
+                test: /\.worker\.js$/,
+                loader: 'worker-loader', 
+                options: { 
+                    inline: 'fallback' 
+                }
+            },
             {
                 test: /\.json5$/i,
                 loader: 'json5-loader',
