@@ -7,6 +7,12 @@ This library was created to draw Salesforce Database Schemas. You can check a de
 
 ![Screenshot 2021-05-15 at 12 03 28](https://user-images.githubusercontent.com/55927613/118358184-975a2300-b575-11eb-9e0f-03c3266c4e5c.png)
 
+
+| canvas-js                     | https://github.com/AllanOricil/canvas-js                     |
+|-------------------------------|--------------------------------------------------------------|
+| salesforce-lwc-schema-builder | https://github.com/AllanOricil/salesforce-lwc-schema-builder |
+
+
 > [!IMPORTANT]
 > the demo is broken in Brave. It works fine in Firefox and Safari.
 
