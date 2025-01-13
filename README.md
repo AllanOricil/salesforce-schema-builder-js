@@ -1,7 +1,7 @@
 # salesforce-schema-builder-js
 
 > [!IMPORTANT]
-> the demo is broken
+> the demo is broken in Brave. It works fine in Firefox and Safari.
 
 This library was created to draw Salesforce Database Schemas. You can check a demo I built in the links below:
 
